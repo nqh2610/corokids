@@ -21,10 +21,24 @@ export default function SorobanBoard() {
   const toggleBead = (col, row) => {
     const newBeads = [...beads];
     if (row === 0) {
+      // Hạt trên (heaven bead)
       newBeads[col][0] = !newBeads[col][0];
     } else {
-      for (let i = 1; i <= row; i++) {
-        newBeads[col][i] = !newBeads[col][row];
+      // Hạt dưới (earth beads)
+      const currentState = newBeads[col][row];
+
+      if (currentState) {
+        // Nếu đang ở dưới (true), đưa lên: đưa tuần tự từ trên xuống
+        // Bấm vào hạt phía dưới → đưa luôn các hạt phía trên lên
+        for (let i = 1; i <= row; i++) {
+          newBeads[col][i] = false;
+        }
+      } else {
+        // Nếu đang ở trên (false), đưa xuống: đưa tuần tự từ dưới lên
+        // Bấm vào hạt phía trên → đưa luôn các hạt phía dưới xuống
+        for (let i = 4; i >= row; i--) {
+          newBeads[col][i] = true;
+        }
       }
     }
     setBeads(newBeads);
