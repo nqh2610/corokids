@@ -4,13 +4,11 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, PlayCircle } from 'lucide-react';
-import SorobanBoard from '@/components/Soroban/SorobanBoard';
 
 export default function LearnPage() {
   const { status } = useSession();
   const router = useRouter();
   const [selectedLevel, setSelectedLevel] = useState(1);
-  const [showSoroban, setShowSoroban] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -21,7 +19,7 @@ export default function LearnPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-4xl animate-spin">🧮</div>
+        <div className="text-4xl sm:text-5xl animate-spin">🧮</div>
       </div>
     );
   }
@@ -34,70 +32,77 @@ export default function LearnPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
-        <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 mb-6 px-6 py-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-all">
-          <ArrowLeft size={20} />
-          <span className="font-bold">Quay lại Dashboard</span>
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="flex items-center gap-2 mb-4 sm:mb-6 px-4 sm:px-6 py-2 sm:py-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          <ArrowLeft size={18} className="sm:w-5 sm:h-5" />
+          <span className="text-sm sm:text-base font-bold">Quay lại Dashboard</span>
         </button>
 
-        <div className="bg-white rounded-3xl p-8 shadow-xl mb-8">
-          <h2 className="text-4xl font-bold text-gray-800 mb-2">Hành trình học tập 🚀</h2>
-          <p className="text-gray-600">Chọn cấp độ phù hợp với bạn</p>
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-xl mb-6 sm:mb-8">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">Hành trình học tập 🚀</h2>
+          <p className="text-sm sm:text-base text-gray-600">Chọn cấp độ phù hợp với bạn</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
+        <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {levels.map((level) => (
             <div
               key={level.id}
               onClick={() => setSelectedLevel(level.id)}
-              className={`group cursor-pointer bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transform hover:-translate-y-2 transition-all ${selectedLevel === level.id ? 'ring-4 ring-purple-500' : ''}`}
+              className={`group cursor-pointer bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-xl hover:shadow-2xl transform hover:-translate-y-2 transition-all ${selectedLevel === level.id ? 'ring-4 ring-purple-500' : ''}`}
+              tabIndex={0}
+              role="button"
+              aria-pressed={selectedLevel === level.id}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setSelectedLevel(level.id);
+                }
+              }}
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="text-6xl">{level.icon}</div>
-                <div className={`px-4 py-2 bg-gradient-to-r ${level.color} text-white rounded-full text-sm font-bold`}>
+              <div className="flex items-start justify-between mb-3 sm:mb-4">
+                <div className="text-5xl sm:text-6xl">{level.icon}</div>
+                <div className={`px-3 sm:px-4 py-1 sm:py-2 bg-gradient-to-r ${level.color} text-white rounded-full text-xs sm:text-sm font-bold`}>
                   {level.lessons} bài học
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">{level.title}</h3>
-              <div className="space-y-2 mb-4">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 sm:mb-3">{level.title}</h3>
+              <div className="space-y-1 sm:space-y-2 mb-3 sm:mb-4">
                 {level.topics.map((topic, i) => (
-                  <div key={i} className="flex items-center gap-2 text-gray-600">
-                    <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${level.color}`} />
+                  <div key={i} className="flex items-center gap-2 text-sm sm:text-base text-gray-600">
+                    <div className={`w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-gradient-to-r ${level.color}`} />
                     <span>{topic}</span>
                   </div>
                 ))}
               </div>
               {level.id === selectedLevel && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowSoroban(true);
-                  }}
-                  className={`mt-6 w-full py-4 bg-gradient-to-r ${level.color} text-white rounded-2xl font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center justify-center gap-2`}
-                >
-                  <PlayCircle size={24} />
-                  Bắt đầu học
-                </button>
+                <div className={`mt-4 sm:mt-6 w-full py-3 sm:py-4 bg-gradient-to-r ${level.color} text-white rounded-xl sm:rounded-2xl text-sm sm:text-base font-bold shadow-lg flex items-center justify-center gap-2`}>
+                  <PlayCircle size={20} className="sm:w-6 sm:h-6" />
+                  Đã chọn
+                </div>
               )}
             </div>
           ))}
         </div>
 
-        {showSoroban && (
-          <div className="bg-white rounded-3xl p-8 shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-3xl font-bold text-gray-800">Bàn tính tương tác 🧮</h3>
-              <button
-                onClick={() => setShowSoroban(false)}
-                className="px-6 py-3 bg-gray-200 rounded-full font-bold hover:bg-gray-300 transition-all"
-              >
-                ✕ Đóng
-              </button>
-            </div>
-            <SorobanBoard />
+        {/* Hint for Floating Soroban */}
+        <div className="bg-gradient-to-r from-amber-100 to-orange-100 border-2 border-amber-400 rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-center shadow-lg">
+          <div className="text-5xl sm:text-6xl mb-3 sm:mb-4">🧮</div>
+          <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 sm:mb-3">
+            Luyện tập với Bàn tính Soroban
+          </h3>
+          <p className="text-sm sm:text-base text-gray-700 mb-4">
+            Click vào nút bàn tính ở góc dưới bên phải để mở bàn tính tương tác và luyện tập bất kỳ lúc nào!
+          </p>
+          <div className="flex items-center justify-center gap-2 text-amber-700 font-semibold">
+            <span className="text-lg sm:text-xl">👉</span>
+            <span className="text-sm sm:text-base">Xem ở góc dưới bên phải</span>
+            <span className="text-2xl sm:text-3xl animate-bounce">🧮</span>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

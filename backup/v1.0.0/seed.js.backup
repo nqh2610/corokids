@@ -1,3 +1,9 @@
+// ============================================================
+// SOROKIDS SEED FILE - VERSION 1.0.0
+// Backup Date: 2025-12-01
+// Description: Original seed data before major system upgrade
+// ============================================================
+
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();

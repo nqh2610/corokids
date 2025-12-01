@@ -1,6 +1,7 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
 import SessionProvider from '../components/SessionProvider';
+import { ToastProvider } from '../components/Toast/ToastContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -13,7 +14,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="vi">
       <body className={inter.className}>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </SessionProvider>
       </body>
     </html>
   );
