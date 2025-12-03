@@ -1,0 +1,1775 @@
+'use client';
+
+import { useSession } from 'next-auth/react';
+import { useRouter, useParams } from 'next/navigation';
+import { useEffect, useState, useMemo } from 'react';
+import { ArrowLeft, ArrowRight, CheckCircle, Star, Clock, RotateCcw, Home, BookOpen, Target, Lightbulb, Menu, X, List, ChevronDown, ChevronUp } from 'lucide-react';
+import SorobanBoard from '@/components/Soroban/SorobanBoard';
+import StarBadge, { StarReward } from '@/components/Rewards/StarBadge';
+import CelebrationEffect, { CorrectAnswerEffect, WrongAnswerEffect } from '@/components/Rewards/CelebrationEffect';
+import { StarsEarnedCard } from '@/components/LevelBadge/LevelBadge';
+
+// ===== COMPONENT HIỂN THỊ LÝ THUYẾT CẢI TIẾN =====
+function TheoryContent({ theory }) {
+  const [expandedSections, setExpandedSections] = useState({});
+
+  // Parse inline styles như **bold**
+  const parseInlineStyles = (text) => {
+    if (!text || typeof text !== 'string') return text;
+    
+    const parts = [];
+    let remaining = text;
+    let key = 0;
+
+    while (remaining.length > 0) {
+      const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
+      
+      if (boldMatch && boldMatch.index !== undefined) {
+        if (boldMatch.index > 0) {
+          parts.push(<span key={key++}>{remaining.substring(0, boldMatch.index)}</span>);
+        }
+        parts.push(<strong key={key++} className="text-blue-700 font-semibold">{boldMatch[1]}</strong>);
+        remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
+      } else {
+        parts.push(<span key={key++}>{remaining}</span>);
+        break;
+      }
+    }
+
+    return parts.length > 0 ? parts : text;
+  };
+
+  // Parse theory array thành sections có cấu trúc
+  const sections = useMemo(() => {
+    if (!theory || theory.length === 0) return [];
+
+    const result = [];
+    let currentSection = null;
+
+    // Main heading emojis - chỉ những emoji này mới tạo section mới
+    const mainHeadingEmojis = /^[🧠✨📚💡🎯🔥⭐🏆📖🧮🖼️📐🎮💪🌟⚡📝🏅]/u;
+    // Sub-heading markers - không tạo section mới, chỉ là content đặc biệt
+    const subHeadingMarkers = /^[🔹◆◇▸▹→•·-]/u;
+
+    theory.forEach((line, index) => {
+      // Bỏ qua dòng trống
+      if (!line || line.trim() === '') return;
+
+      const trimmedLine = line.trim();
+      const headingMatch = trimmedLine.match(/^(.+?)\*\*(.+?)\*\*(.*)$/);
+      
+      // Kiểm tra xem có phải MAIN heading không (emoji chính + bold text)
+      const isMainHeading = headingMatch && 
+        trimmedLine.match(mainHeadingEmojis) && 
+        !trimmedLine.match(subHeadingMarkers);
+
+      if (isMainHeading) {
+        // Tạo section mới cho main heading
+        if (currentSection) {
+          result.push(currentSection);
+        }
+        const emoji = headingMatch[1].trim();
+        const title = headingMatch[2].trim();
+        const extra = headingMatch[3].trim();
+        
+        currentSection = {
+          id: index,
+          emoji: emoji,
+          title: title,
+          extra: extra,
+          items: []
+        };
+      } else if (currentSection) {
+        // Xử lý các dòng content
+        const isSubHeading = headingMatch && trimmedLine.match(subHeadingMarkers);
+        const isIndented = line.startsWith('   ') || line.startsWith('\t');
+        
+        currentSection.items.push({
+          type: isSubHeading ? 'subheading' : (isIndented ? 'indented' : 'normal'),
+          content: trimmedLine,
+          parsed: parseInlineStyles(trimmedLine)
+        });
+      } else {
+        // Chưa có section, tạo section mặc định
+        currentSection = {
+          id: 0,
+          emoji: '📖',
+          title: 'Nội dung bài học',
+          extra: '',
+          items: [{
+            type: 'normal',
+            content: trimmedLine,
+            parsed: parseInlineStyles(trimmedLine)
+          }]
+        };
+      }
+    });
+
+    // Push section cuối cùng
+    if (currentSection) {
+      result.push(currentSection);
+    }
+
+    return result;
+  }, [theory]);
+
+  const toggleSection = (sectionId) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionId]: !prev[sectionId]
+    }));
+  };
+
+  // Mặc định mở tất cả sections
+  useEffect(() => {
+    if (sections.length > 0 && Object.keys(expandedSections).length === 0) {
+      const allExpanded = {};
+      sections.forEach(s => { allExpanded[s.id] = true; });
+      setExpandedSections(allExpanded);
+    }
+  }, [sections]);
+
+  if (sections.length === 0) {
+    return (
+      <div className="p-4 text-gray-500 text-center">
+        Không có nội dung lý thuyết
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-3">
+      <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+        <BookOpen size={16} className="text-blue-500" />
+        📚 Kiến thức cần nhớ
+      </h3>
+
+      <div className="space-y-3">
+        {sections.map((section) => {
+          const isExpanded = expandedSections[section.id] !== false;
+          const hasItems = section.items && section.items.length > 0;
+
+          return (
+            <div 
+              key={section.id}
+              className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl overflow-hidden border border-blue-100 shadow-sm"
+            >
+              {/* Section Header */}
+              <button
+                onClick={() => toggleSection(section.id)}
+                className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-blue-100/50 transition-colors"
+              >
+                <div className="flex items-center gap-2 text-left">
+                  <span className="text-lg">{section.emoji || '📌'}</span>
+                  <span className="font-bold text-blue-800 text-sm">
+                    {section.title}
+                  </span>
+                  {section.extra && (
+                    <span className="text-gray-600 text-xs">{section.extra}</span>
+                  )}
+                </div>
+                {hasItems && (
+                  <span className="text-blue-400">
+                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </span>
+                )}
+              </button>
+
+              {/* Section Content */}
+              {isExpanded && hasItems && (
+                <div className="px-3 pb-3 pt-0">
+                  <div className="bg-white rounded-lg p-3 space-y-2">
+                    {section.items.map((item, itemIdx) => {
+                      // Sub-heading style
+                      if (item.type === 'subheading') {
+                        return (
+                          <div key={itemIdx} className="pt-2 first:pt-0">
+                            <div className="flex items-center gap-1.5 text-indigo-700 font-semibold text-sm border-b border-indigo-100 pb-1">
+                              {item.parsed}
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      // Indented content (số liệu, ví dụ)
+                      if (item.type === 'indented') {
+                        return (
+                          <div 
+                            key={itemIdx}
+                            className="ml-4 text-gray-600 text-sm font-mono bg-gray-50 rounded px-2 py-1"
+                          >
+                            {item.parsed}
+                          </div>
+                        );
+                      }
+                      
+                      // Normal content
+                      return (
+                        <div 
+                          key={itemIdx}
+                          className="text-gray-700 text-sm leading-relaxed"
+                        >
+                          {item.parsed}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Tips box */}
+      <div className="mt-3 p-2.5 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg border border-amber-200">
+        <div className="flex items-start gap-2">
+          <Lightbulb size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-amber-700">
+            <strong>Mẹo:</strong> Đọc kỹ lý thuyết rồi thử trên bàn Soroban bên phải nhé!
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function LessonPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const params = useParams();
+  const levelId = parseInt(params.levelId);
+  const lessonId = parseInt(params.lessonId);
+
+  const [lesson, setLesson] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [practiceIndex, setPracticeIndex] = useState(0);
+  const [practiceResults, setPracticeResults] = useState([]);
+  const [showResult, setShowResult] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [completed, setCompleted] = useState(false);
+  const [earnedStars, setEarnedStars] = useState(0);
+  const [allLessons, setAllLessons] = useState([]); // Danh sách tất cả bài học trong level
+  const [showLessonMenu, setShowLessonMenu] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [showCorrectEffect, setShowCorrectEffect] = useState(false);
+  const [showWrongEffect, setShowWrongEffect] = useState(false);
+  const [celebrationType, setCelebrationType] = useState('medium');
+  const [isNewRecord, setIsNewRecord] = useState(false);
+  const [previousBestStars, setPreviousBestStars] = useState(0);
+  const [progressLoaded, setProgressLoaded] = useState(false);
+  // EXP & Level states
+  const [expEarned, setExpEarned] = useState(0);
+  const [expBreakdown, setExpBreakdown] = useState([]);
+  const [levelUpInfo, setLevelUpInfo] = useState(null);
+  const [startTime, setStartTime] = useState(null);
+
+  // Key để lưu trạng thái trong localStorage
+  const getProgressKey = () => `lesson_progress_${levelId}_${lessonId}`;
+
+  // Lưu trạng thái vào localStorage
+  const saveProgress = (index, results) => {
+    if (typeof window !== 'undefined') {
+      const progressData = {
+        practiceIndex: index,
+        practiceResults: results,
+        currentStep: 1, // Đã vào phần luyện tập
+        timestamp: Date.now()
+      };
+      localStorage.setItem(getProgressKey(), JSON.stringify(progressData));
+    }
+  };
+
+  // Xóa trạng thái khi hoàn thành hoặc reset
+  const clearProgress = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(getProgressKey());
+    }
+  };
+
+  // Khôi phục trạng thái từ localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && lesson && !progressLoaded) {
+      const saved = localStorage.getItem(getProgressKey());
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          const practices = lesson?.content?.practice || [];
+          
+          // Chỉ khôi phục nếu còn câu chưa làm
+          if (data.practiceIndex < practices.length) {
+            setPracticeIndex(data.practiceIndex);
+            setPracticeResults(data.practiceResults || []);
+            setCurrentStep(data.currentStep || 1);
+          }
+        } catch (e) {
+          console.error('Error loading progress:', e);
+        }
+      }
+      setProgressLoaded(true);
+    }
+  }, [lesson, progressLoaded, levelId, lessonId]);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchLesson();
+      fetchAllLessons(); // Lấy danh sách tất cả bài học trong level
+      setStartTime(Date.now()); // Bắt đầu đếm thời gian
+    }
+  }, [levelId, lessonId, status]);
+
+  const fetchLesson = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/lessons/${levelId}?lessonId=${lessonId}`);
+      const data = await res.json();
+      if (data.lesson) {
+        setLesson(data.lesson);
+      }
+    } catch (error) {
+      console.error('Error fetching lesson:', error);
+    }
+    setLoading(false);
+  };
+
+  const fetchAllLessons = async () => {
+    try {
+      const res = await fetch(`/api/lessons?levelId=${levelId}`);
+      const data = await res.json();
+      if (data.lessons) {
+        setAllLessons(data.lessons);
+      }
+    } catch (error) {
+      console.error('Error fetching all lessons:', error);
+    }
+  };
+
+  const handlePracticeAnswer = (userAnswer, correctAnswer) => {
+    const correct = userAnswer === correctAnswer;
+    setIsCorrect(correct);
+    setShowResult(true);
+    
+    const newResults = [...practiceResults, { correct, userAnswer, correctAnswer }];
+    setPracticeResults(newResults);
+    
+    // Hiển thị hiệu ứng phản hồi
+    if (correct) {
+      setShowCorrectEffect(true);
+    } else {
+      setShowWrongEffect(true);
+    }
+  };
+
+  const nextPractice = () => {
+    setShowResult(false);
+    const practices = lesson?.content?.practice || [];
+    if (practiceIndex < practices.length - 1) {
+      const newIndex = practiceIndex + 1;
+      setPracticeIndex(newIndex);
+      // Lưu tiến độ vào localStorage
+      saveProgress(newIndex, practiceResults);
+    } else {
+      // Hoàn thành bài học - xóa trạng thái đã lưu
+      clearProgress();
+      completeLesson();
+    }
+  };
+
+  const completeLesson = async () => {
+    const correctCount = practiceResults.filter(r => r.correct).length + (isCorrect ? 1 : 0);
+    const totalCount = (lesson?.content?.practice?.length || 0);
+    const accuracy = totalCount > 0 ? (correctCount / totalCount) * 100 : 100;
+    const stars = Math.ceil((accuracy / 100) * (lesson?.stars || 3));
+    
+    // Tính thời gian làm bài (giây)
+    const timeSpent = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
+    
+    setEarnedStars(stars);
+    setCompleted(true);
+
+    // Xác định loại celebration dựa trên thành tích
+    const maxStars = lesson?.stars || 3;
+    if (stars === maxStars && correctCount === totalCount) {
+      setCelebrationType('perfect');
+    } else if (stars >= maxStars * 0.8) {
+      setCelebrationType('large');
+    } else if (stars >= maxStars * 0.5) {
+      setCelebrationType('medium');
+    } else {
+      setCelebrationType('small');
+    }
+    setShowCelebration(true);
+
+    // Lưu progress
+    try {
+      const res = await fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          levelId,
+          lessonId,
+          completed: true,
+          starsEarned: stars,
+          timeSpent,
+          accuracy
+        })
+      });
+      const data = await res.json();
+      
+      // Cập nhật thông tin kỷ lục và EXP
+      if (data.success) {
+        setIsNewRecord(data.isNewRecord);
+        setPreviousBestStars(data.oldStars);
+        setExpEarned(data.expEarned || 0);
+        setExpBreakdown(data.expBreakdown || []);
+        setLevelUpInfo(data.levelUp);
+      }
+    } catch (error) {
+      console.error('Error saving progress:', error);
+    }
+  };
+
+  const goToNextLesson = () => {
+    // Kiểm tra bài tiếp theo có tồn tại không
+    const nextLesson = allLessons.find(l => l.lessonId === lessonId + 1);
+    if (nextLesson) {
+      router.push(`/learn/${levelId}/${lessonId + 1}`);
+    } else {
+      // Nếu hết bài trong level, chuyển về trang learn
+      router.push('/learn');
+    }
+  };
+
+  const goToPrevLesson = () => {
+    if (lessonId > 1) {
+      router.push(`/learn/${levelId}/${lessonId - 1}`);
+    }
+  };
+
+  const resetLesson = () => {
+    // Xóa trạng thái đã lưu trong localStorage
+    clearProgress();
+    // Reset về bước đầu tiên (lý thuyết)
+    setCurrentStep(0);
+    // Reset bài luyện tập về câu đầu tiên
+    setPracticeIndex(0);
+    // Xóa kết quả các bài đã làm
+    setPracticeResults([]);
+    // Reset trạng thái hiển thị kết quả
+    setShowResult(false);
+    setIsCorrect(false);
+    // Reset trạng thái hoàn thành và số sao
+    setCompleted(false);
+    setEarnedStars(0);
+    // Reset hiệu ứng celebration
+    setShowCelebration(false);
+    setShowCorrectEffect(false);
+    setShowWrongEffect(false);
+    setCelebrationType('medium');
+    // Reset thông tin kỷ lục
+    setIsNewRecord(false);
+    setPreviousBestStars(0);
+    // Reset EXP info
+    setExpEarned(0);
+    setExpBreakdown([]);
+    setLevelUpInfo(null);
+    setStartTime(Date.now());
+  };
+
+  // Tìm bài học tiếp theo để hiển thị preview
+  const nextLessonInfo = allLessons.find(l => l.lessonId === lessonId + 1);
+  const prevLessonInfo = lessonId > 1 ? allLessons.find(l => l.lessonId === lessonId - 1) : null;
+
+  if (status === 'loading' || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+        <div className="text-center">
+          <div className="text-5xl animate-spin mb-4">🧮</div>
+          <p className="text-gray-600">Đang tải bài học...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!lesson) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+        <div className="text-center bg-white p-8 rounded-2xl shadow-xl">
+          <div className="text-5xl mb-4">😕</div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Không tìm thấy bài học</h2>
+          <button
+            onClick={() => router.push('/learn')}
+            className="mt-4 px-6 py-3 bg-purple-500 text-white rounded-xl font-bold hover:bg-purple-600"
+          >
+            Quay lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const content = lesson.content || {};
+  const theory = content.theory || [];
+  const practices = content.practice || [];
+  const currentPractice = practices[practiceIndex];
+
+  // Màn hình hoàn thành - THIẾT KẾ TẬP TRUNG VÀO ĐIỂM THƯỞNG
+  if (completed) {
+    const correctCount = practiceResults.filter(r => r.correct).length + (isCorrect ? 1 : 0);
+    const totalCount = practices.length;
+    const isPerfect = correctCount === totalCount;
+    const maxStars = lesson?.stars || 3;
+    const accuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 100;
+    
+    return (
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 p-4 overflow-hidden">
+        {/* Hiệu ứng ăn mừng */}
+        <CelebrationEffect 
+          type={celebrationType} 
+          trigger={showCelebration}
+          duration={4000}
+        />
+        
+        {/* Card chính - Tập trung */}
+        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden">
+          
+          {/* Header gradient với icon */}
+          <div className="bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 pt-6 pb-12 text-center relative">
+            <div className={`text-6xl ${isPerfect ? 'animate-bounce' : 'animate-pulse'}`}>
+              {isPerfect ? '🏆' : earnedStars >= maxStars * 0.7 ? '🎉' : '⭐'}
+            </div>
+            <h1 className="text-2xl font-black text-white mt-2 drop-shadow-lg">
+              {isPerfect ? 'HOÀN HẢO!' : earnedStars >= maxStars * 0.7 ? 'XUẤT SẮC!' : 'HOÀN THÀNH!'}
+            </h1>
+            
+            {/* Decorative circles */}
+            <div className="absolute top-2 left-4 w-8 h-8 bg-white/20 rounded-full"></div>
+            <div className="absolute top-8 right-6 w-4 h-4 bg-white/30 rounded-full"></div>
+            <div className="absolute bottom-4 left-8 w-3 h-3 bg-white/25 rounded-full"></div>
+          </div>
+
+          {/* ĐIỂM THƯỞNG - NHẤN MẠNH NHẤT */}
+          <div className="relative -mt-8 mx-6">
+            <div className="bg-gradient-to-br from-amber-50 to-yellow-100 rounded-2xl p-5 border-4 border-amber-300 shadow-lg">
+              <div className="flex items-center justify-center gap-4">
+                <div className="text-5xl animate-pulse">⭐</div>
+                <div className="text-center">
+                  <div className="text-5xl font-black text-amber-500 leading-none">+{earnedStars}</div>
+                  <div className="text-amber-600 font-bold text-sm">điểm sao</div>
+                </div>
+                <div className="text-5xl animate-pulse">⭐</div>
+              </div>
+              
+              {/* Badge kỷ lục */}
+              {isNewRecord && (
+                <div className="mt-3 text-center">
+                  <span className="inline-flex items-center gap-1 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
+                    🏆 KỶ LỤC MỚI!
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Nội dung phụ */}
+          <div className="p-5 space-y-4">
+            
+            {/* Thống kê gọn - 1 dòng */}
+            <div className="flex items-center justify-center gap-6 py-3 bg-gray-50 rounded-xl">
+              <div className="text-center">
+                <div className="text-2xl font-black text-green-500">{correctCount}</div>
+                <div className="text-xs text-gray-500">Đúng</div>
+              </div>
+              <div className="text-gray-300 text-2xl">/</div>
+              <div className="text-center">
+                <div className="text-2xl font-black text-gray-400">{totalCount}</div>
+                <div className="text-xs text-gray-500">Câu hỏi</div>
+              </div>
+              <div className="h-8 w-px bg-gray-200"></div>
+              <div className="text-center">
+                <div className="text-2xl font-black text-purple-500">{accuracy}%</div>
+                <div className="text-xs text-gray-500">Chính xác</div>
+              </div>
+            </div>
+
+            {/* Stars Earned Card */}
+            {expEarned > 0 && (
+              <StarsEarnedCard 
+                starsBreakdown={expBreakdown}
+                totalStars={expEarned}
+                levelUp={levelUpInfo}
+              />
+            )}
+
+            {/* Bài tiếp theo - Nổi bật */}
+            {nextLessonInfo && (
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-3 border border-purple-200">
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">🚀</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-purple-500 font-medium">Tiếp theo</div>
+                    <div className="font-bold text-purple-700 text-sm truncate">{nextLessonInfo.title}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Nút hành động */}
+            <div className="space-y-2">
+              {nextLessonInfo && (
+                <button
+                  onClick={goToNextLesson}
+                  className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                >
+                  Tiếp tục học
+                  <ArrowRight size={20} />
+                </button>
+              )}
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={resetLesson}
+                  className="flex-1 py-3 bg-amber-100 text-amber-700 rounded-xl font-bold hover:bg-amber-200 transition-all flex items-center justify-center gap-2"
+                >
+                  <RotateCcw size={16} />
+                  Làm lại
+                </button>
+                <button
+                  onClick={() => router.push('/learn')}
+                  className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                >
+                  <Home size={16} />
+                  Menu
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen flex bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 overflow-hidden">
+      {/* Hiệu ứng trả lời đúng */}
+      <CorrectAnswerEffect 
+        show={showCorrectEffect} 
+        onComplete={() => setShowCorrectEffect(false)} 
+      />
+      
+      {/* Hiệu ứng trả lời sai */}
+      <WrongAnswerEffect 
+        show={showWrongEffect} 
+        onComplete={() => setShowWrongEffect(false)} 
+      />
+      
+      {/* === SIDEBAR - Progress & Navigation === */}
+      <div className="w-64 bg-white shadow-xl flex flex-col z-30 hidden lg:flex overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-4 text-white flex-shrink-0">
+          <button 
+            onClick={() => router.push('/learn')}
+            className="flex items-center gap-2 text-white/80 hover:text-white mb-3 text-sm"
+          >
+            <ArrowLeft size={16} />
+            🏠 Về trang chủ
+          </button>
+          <h2 className="font-bold text-lg flex items-center gap-2">
+            🎮 Màn {levelId}
+          </h2>
+          <p className="text-white/80 text-sm">{allLessons.length} bài học</p>
+        </div>
+
+        {/* Progress Overview */}
+        <div className="p-3 border-b bg-gradient-to-r from-yellow-50 to-orange-50 flex-shrink-0">
+          <div className="flex items-center justify-between text-sm mb-2">
+            <span className="text-gray-600 text-xs">🎯 Luyện tập</span>
+            <span className="font-bold text-orange-600 text-xs">Bài {practiceIndex + 1}/{practices.length || 1}</span>
+          </div>
+          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-500"
+              style={{ width: `${practices.length ? ((practiceIndex + (showResult ? 1 : 0)) / practices.length) * 100 : 0}%` }}
+            />
+          </div>
+          <p className="text-xs text-gray-500 mt-1 text-center">💪 Cố lên!</p>
+        </div>
+
+        {/* Lesson List */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="p-2">
+            {allLessons.map((l, index) => (
+              <button
+                key={l.lessonId}
+                onClick={() => router.push(`/learn/${levelId}/${l.lessonId}`)}
+                className={`w-full p-2 rounded-xl text-left flex items-center gap-2 mb-1 transition-all ${
+                  l.lessonId === lessonId 
+                    ? 'bg-purple-100 border-2 border-purple-400' 
+                    : l.completed 
+                      ? 'bg-green-50 hover:bg-green-100' 
+                      : 'hover:bg-gray-100'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                  l.lessonId === lessonId 
+                    ? 'bg-purple-500 text-white' 
+                    : l.completed 
+                      ? 'bg-green-500 text-white' 
+                      : 'bg-gray-200 text-gray-500'
+                }`}>
+                  {l.completed ? <CheckCircle size={14} /> : index + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className={`font-medium text-sm truncate ${l.lessonId === lessonId ? 'text-purple-700' : 'text-gray-800'}`}>
+                    {l.title}
+                  </div>
+                  <div className="flex items-center gap-1 text-xs mt-0.5">
+                    {l.completed ? (
+                      <StarBadge 
+                        stars={l.starsEarned || 0} 
+                        size="xs" 
+                        variant="earned"
+                      />
+                    ) : (
+                      <span className="text-gray-400 text-xs">☆ {l.stars || 3} sao</span>
+                    )}
+                    {l.lessonId === lessonId && <span className="text-purple-500 ml-1 animate-pulse">🎮</span>}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom Actions */}
+        <div className="p-3 border-t bg-gradient-to-r from-blue-50 to-purple-50 flex-shrink-0">
+          <button
+            onClick={resetLesson}
+            className="w-full py-2 px-3 bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 rounded-lg text-white font-medium flex items-center justify-center gap-2 text-sm shadow-md"
+          >
+            <RotateCcw size={14} />
+            Chơi lại
+          </button>
+        </div>
+      </div>
+
+      {/* === MAIN CONTENT === */}
+      <div className="flex-1 flex flex-col min-w-0">
+        
+        {/* Mobile Header */}
+        <div className="lg:hidden bg-white shadow-md z-40 flex-shrink-0">
+          <div className="px-4 py-3 flex items-center justify-between">
+            <button
+              onClick={() => router.push('/learn')}
+              className="p-2 hover:bg-gray-100 rounded-full"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            
+            <div className="text-center flex-1 mx-3">
+              <div className="text-xs text-gray-500">📚 Bài học {lessonId}/{allLessons.length}</div>
+              <div className="font-bold text-gray-800 text-sm truncate">{lesson.title}</div>
+            </div>
+            
+            <button
+              onClick={() => setShowLessonMenu(!showLessonMenu)}
+              className="p-2 hover:bg-gray-100 rounded-full"
+            >
+              <List size={20} />
+            </button>
+          </div>
+          
+          {/* Mobile Progress */}
+          <div className="h-1 bg-gray-100">
+            <div 
+              className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all"
+              style={{ width: `${practices.length ? ((practiceIndex + (showResult ? 1 : 0)) / practices.length) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Content Area - TỐI ƯU KHÔNG GIAN */}
+        <div className="flex-1 flex flex-col p-2 lg:p-3 overflow-hidden">
+          
+          {/* Compact Header - gom title + tabs vào 1 dòng */}
+          <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+            {/* Title nhỏ gọn */}
+            <div className="hidden lg:flex items-center gap-2 text-sm text-gray-600">
+              <span>📚</span>
+              <span className="font-medium truncate max-w-[200px]">{lesson.title}</span>
+              <StarBadge 
+                stars={lesson.stars || 3} 
+                size="sm" 
+                variant="header"
+              />
+            </div>
+            
+            {/* Step Tabs - compact */}
+            <div className="flex gap-1 flex-1 lg:flex-none lg:ml-auto">
+              <button
+                onClick={() => setCurrentStep(0)}
+                className={`flex-1 lg:flex-none py-1.5 px-3 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-1 ${
+                  currentStep === 0 
+                    ? 'bg-blue-500 text-white shadow' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span>📖</span>
+                <span className="hidden sm:inline">Học bí kíp</span>
+                {currentStep > 0 && <span>✅</span>}
+              </button>
+              <button
+                onClick={() => theory.length > 0 && setCurrentStep(1)}
+                disabled={theory.length === 0}
+                className={`flex-1 lg:flex-none py-1.5 px-3 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-1 ${
+                  currentStep === 1 
+                    ? 'bg-green-500 text-white shadow' 
+                    : theory.length > 0 
+                      ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' 
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                <span>🎮</span>
+                <span className="hidden sm:inline">Luyện tập</span>
+                <span className="text-xs">({practices.length})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Main Content Area - FULL HEIGHT */}
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* Phần lý thuyết - CẢI TIẾN UI */}
+        {currentStep === 0 && theory.length > 0 && (
+          <div className="flex-1 flex flex-col lg:flex-row gap-2 min-h-0 overflow-hidden">
+            {/* Left: Theory content - CẢI TIẾN HIỂN THỊ */}
+            <div className="lg:w-2/5 bg-white rounded-xl shadow overflow-auto">
+              <TheoryContent theory={theory} />
+              
+              {/* Button chuyển sang luyện tập */}
+              <div className="p-3 border-t bg-gradient-to-r from-green-50 to-emerald-50">
+                <button
+                  onClick={() => setCurrentStep(1)}
+                  className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
+                >
+                  🎮 Luyện tập ngay!
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Right: Soroban - CHIẾM NHIỀU KHÔNG GIAN HƠN */}
+            <div className="lg:w-3/5 flex-1 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-2 flex flex-col min-h-[300px]">
+              <div className="text-center text-xs text-gray-500 mb-1">🧠 Thử gạt các hạt!</div>
+              <div className="flex-1 flex items-center justify-center">
+                <SorobanBoard mode="free" showHints={true} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Phần luyện tập - TỐI ƯU KHÔNG GIAN */}
+        {(currentStep === 1 || theory.length === 0) && practices.length > 0 && (
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* Mini progress bar - siêu gọn */}
+            <div className="flex items-center gap-2 mb-2 px-1 flex-shrink-0">
+              <span className="text-xs text-gray-500">🎮 Bài {practiceIndex + 1}/{practices.length}</span>
+              <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-green-500 transition-all duration-300"
+                  style={{ width: `${((practiceIndex + (showResult ? 1 : 0)) / practices.length) * 100}%` }}
+                />
+              </div>
+            </div>
+            
+            {/* Practice content - FULL HEIGHT */}
+            <div className="flex-1 overflow-y-auto pb-2">
+              {/* Hiển thị câu hỏi theo loại */}
+              {currentPractice?.type === 'create' && (
+                <CreateNumberPractice
+                  target={currentPractice.target}
+                  onCorrect={() => handlePracticeAnswer(currentPractice.target, currentPractice.target)}
+                  showResult={showResult}
+                  isCorrect={isCorrect}
+                  practiceIndex={practiceIndex}
+                />
+              )}
+
+              {currentPractice?.type === 'calc' && (
+                <CalcPractice
+                  problem={currentPractice.problem}
+                  answer={currentPractice.answer}
+                  hint={currentPractice.hint}
+                  onAnswer={(ans) => handlePracticeAnswer(ans, currentPractice.answer)}
+                  showResult={showResult}
+                  isCorrect={isCorrect}
+                  practiceIndex={practiceIndex}
+                />
+              )}
+
+              {currentPractice?.type === 'explore' && (
+                <ExplorePractice
+                  instruction={currentPractice.instruction}
+                  target={currentPractice.target}
+                  onAnswer={(ans, target) => handlePracticeAnswer(ans, target)}
+                  onComplete={() => handlePracticeAnswer(true, true)}
+                  practiceIndex={practiceIndex}
+                />
+              )}
+
+              {currentPractice?.type === 'memory' && (
+                <MemoryPractice
+                  pairs={currentPractice.pairs}
+                  onComplete={() => handlePracticeAnswer(true, true)}
+                  showResult={showResult}
+                />
+              )}
+
+              {currentPractice?.type === 'mental' && (
+                <MentalPractice
+                  problem={currentPractice.problem}
+                  answer={currentPractice.answer}
+                  timeLimit={currentPractice.timeLimit}
+                  onAnswer={(ans) => handlePracticeAnswer(ans, currentPractice.answer)}
+                  showResult={showResult}
+                  isCorrect={isCorrect}
+                  practiceIndex={practiceIndex}
+                />
+              )}
+
+              {currentPractice?.type === 'chain' && (
+                <ChainPractice
+                  problems={currentPractice.problems}
+                  answer={currentPractice.answer}
+                  onAnswer={(ans) => handlePracticeAnswer(ans, currentPractice.answer)}
+                  showResult={showResult}
+                  isCorrect={isCorrect}
+                  practiceIndex={practiceIndex}
+                />
+              )}
+
+              {currentPractice?.type === 'speed' && (
+                <SpeedPractice
+                  count={currentPractice.count}
+                  difficulty={currentPractice.difficulty}
+                  timeLimit={currentPractice.timeLimit}
+                  onComplete={(correct, total) => {
+                    const accuracy = total > 0 ? correct / total : 0;
+                    handlePracticeAnswer(accuracy >= 0.7, true);
+                  }}
+                  showResult={showResult}
+                  isCorrect={isCorrect}
+                />
+              )}
+
+              {/* Bạn nhỏ (cộng = 5) */}
+              {currentPractice?.type === 'friend5' && (
+                <FriendPractice
+                  question={currentPractice.question}
+                  answer={currentPractice.answer}
+                  friendOf={5}
+                  onAnswer={(ans) => handlePracticeAnswer(ans, currentPractice.answer)}
+                  showResult={showResult}
+                  isCorrect={isCorrect}
+                  practiceIndex={practiceIndex}
+                />
+              )}
+
+              {/* Bạn lớn (cộng = 10) */}
+              {currentPractice?.type === 'friend10' && (
+                <FriendPractice
+                  question={currentPractice.question}
+                  answer={currentPractice.answer}
+                  friendOf={10}
+                  onAnswer={(ans) => handlePracticeAnswer(ans, currentPractice.answer)}
+                  showResult={showResult}
+                  isCorrect={isCorrect}
+                  practiceIndex={practiceIndex}
+                />
+              )}
+            </div>
+
+            {/* Nút tiếp tục - LUÔN HIỂN THỊ Ở DƯỚI CÙNG */}
+            {showResult && (
+              <div className="flex-shrink-0 pt-2 border-t bg-gradient-to-r from-purple-50 via-pink-50 to-orange-50">
+                <button
+                  onClick={nextPractice}
+                  className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all ${
+                    isCorrect 
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
+                      : 'bg-gradient-to-r from-orange-500 to-amber-500 text-white'
+                  }`}
+                >
+                  {practiceIndex < practices.length - 1 ? (
+                    <>🚀 Câu tiếp theo <ArrowRight size={20} /></>
+                  ) : (
+                    <>🎉 Hoàn thành nhiệm vụ <CheckCircle size={20} /></>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Không có practice */}
+        {practices.length === 0 && currentStep === 1 && (
+          <div className="bg-white rounded-2xl shadow-xl p-8 text-center flex-1 flex flex-col items-center justify-center">
+            <div className="text-6xl mb-4">📚</div>
+            <h2 className="text-xl font-bold mb-2 text-purple-700">Xong phần lý thuyết!</h2>
+            <p className="text-gray-600 mb-6">Em đã đọc hiểu bài học rồi! Giỏi lắm! 🌟</p>
+            <button
+              onClick={completeLesson}
+              className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-transform"
+            >
+              ✅ Hoàn thành bài học
+            </button>
+          </div>
+        )}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {showLessonMenu && (
+        <div className="lg:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setShowLessonMenu(false)}>
+          <div 
+            className="absolute left-0 top-0 h-full w-72 bg-white shadow-2xl overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-4 text-white">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-lg">Level {levelId}</h3>
+                <button onClick={() => setShowLessonMenu(false)}>
+                  <X size={20} />
+                </button>
+              </div>
+              <p className="text-white/80 text-sm mt-1">{allLessons.length} bài học</p>
+            </div>
+            <div className="p-2">
+              {allLessons.map((l, index) => (
+                <button
+                  key={l.lessonId}
+                  onClick={() => {
+                    router.push(`/learn/${levelId}/${l.lessonId}`);
+                    setShowLessonMenu(false);
+                  }}
+                  className={`w-full p-3 rounded-xl text-left flex items-center gap-3 mb-1 transition-all ${
+                    l.lessonId === lessonId 
+                      ? 'bg-purple-100 border-2 border-purple-400' 
+                      : l.completed 
+                        ? 'bg-green-50' 
+                        : 'hover:bg-gray-100'
+                  }`}
+                >
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${
+                    l.lessonId === lessonId 
+                      ? 'bg-purple-500 text-white' 
+                      : l.completed 
+                        ? 'bg-green-500 text-white' 
+                        : 'bg-gray-200 text-gray-500'
+                  }`}>
+                    {l.completed ? <CheckCircle size={16} /> : index + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`font-medium text-sm truncate ${l.lessonId === lessonId ? 'text-purple-700' : 'text-gray-800'}`}>
+                      {l.title}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {l.lessonId === lessonId ? '← Đang học' : l.completed ? '✓ Hoàn thành' : ''}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Component: Tạo số trên bàn tính - SOROBAN LỚN
+function CreateNumberPractice({ target, onCorrect, showResult, isCorrect, practiceIndex }) {
+  const [currentValue, setCurrentValue] = useState(0);
+
+  // Reset khi chuyển câu
+  useEffect(() => {
+    setCurrentValue(0);
+  }, [practiceIndex]);
+
+  const handleValueChange = (value) => {
+    setCurrentValue(value);
+  };
+
+  const isMatch = currentValue === target;
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-3 h-full">
+      {/* Left: Đề bài - GỌN */}
+      <div className="lg:w-1/3 flex flex-col">
+        <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl p-3 text-center">
+          <div className="text-sm text-gray-600 mb-2">🎯 Tạo số này!</div>
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-4xl lg:text-5xl font-black text-purple-600">{target}</span>
+            {showResult && (
+              <span className={`text-3xl ${isCorrect ? 'animate-bounce' : ''}`}>
+                {isCorrect ? '🎉' : '😅'}
+              </span>
+            )}
+          </div>
+          
+          {/* Hiển thị giá trị hiện tại khi chưa đúng */}
+          {!showResult && (
+            <div className={`mt-3 p-2 rounded-lg transition-all ${isMatch ? 'bg-green-100 border-2 border-green-400' : 'bg-white/50'}`}>
+              <div className="text-xs text-gray-500 mb-1">Bàn tính của em:</div>
+              <div className={`text-2xl font-bold ${isMatch ? 'text-green-600' : 'text-gray-500'}`}>
+                {currentValue}
+                {isMatch && <span className="ml-2 text-green-500 animate-bounce inline-block">✓</span>}
+              </div>
+              {!isMatch && currentValue > 0 && (
+                <div className="text-xs text-orange-500 mt-1">
+                  {currentValue > target ? '📉 Lớn quá!' : '📈 Nhỏ quá!'} Thử lại nhé!
+                </div>
+              )}
+            </div>
+          )}
+
+          {showResult && (
+            <div className={`mt-2 py-1.5 px-3 rounded-lg text-sm font-bold ${isCorrect ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'}`}>
+              {isCorrect ? '✅ Đúng rồi!' : `💪 Đáp án: ${target}`}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Right: Soroban Board - LỚN */}
+      <div className="lg:w-2/3 flex-1 flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-2 min-h-[280px]">
+        <SorobanBoard 
+          mode="practice" 
+          targetNumber={target}
+          onCorrect={onCorrect}
+          onValueChange={handleValueChange}
+          showHints={false}
+          resetKey={practiceIndex}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Component: Tính toán - HỌC SINH PHẢI GẠT BÀN TÍNH, TỰ ĐỘNG KIỂM TRA
+function CalcPractice({ problem, answer, hint, onAnswer, showResult, isCorrect, practiceIndex }) {
+  const [currentValue, setCurrentValue] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
+
+  // Reset khi chuyển câu
+  useEffect(() => {
+    setCurrentValue(0);
+    setSubmitted(false);
+  }, [practiceIndex]);
+
+  // Tự động kiểm tra khi gạt đúng
+  const handleValueChange = (value) => {
+    setCurrentValue(value);
+    
+    // Nếu đúng và chưa submit thì tự động báo đúng
+    if (value === answer && !submitted) {
+      setSubmitted(true);
+      setTimeout(() => {
+        onAnswer(value);
+      }, 800);
+    }
+  };
+
+  const isMatch = currentValue === answer;
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-3 h-full">
+      {/* Left: Đề bài */}
+      <div className="lg:w-1/3 flex flex-col">
+        <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl p-3">
+          <div className="text-center text-sm text-gray-600 mb-2">🧮 Gạt bàn tính để tính!</div>
+          
+          {/* Phép tính */}
+          <div className="text-center mb-3">
+            <span className="text-3xl lg:text-4xl font-black text-purple-600">{problem}</span>
+            <span className="text-3xl lg:text-4xl font-bold text-gray-400 mx-2">=</span>
+            <span className="text-3xl lg:text-4xl font-black text-purple-400">?</span>
+          </div>
+
+          {/* Gợi ý */}
+          {hint && !showResult && !submitted && (
+            <div className="text-center mb-3">
+              <span className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded-full">💡 {hint}</span>
+            </div>
+          )}
+
+          {/* Hiển thị giá trị bàn tính */}
+          <div className={`p-3 rounded-xl transition-all ${
+            submitted || showResult
+              ? 'bg-green-100 border-2 border-green-400'
+              : isMatch 
+                ? 'bg-green-50 border-2 border-green-300' 
+                : 'bg-white/70'
+          }`}>
+            <div className="text-xs text-gray-500 mb-1 text-center">Kết quả trên bàn tính:</div>
+            <div className={`text-3xl font-black text-center transition-colors ${
+              submitted || showResult || isMatch ? 'text-green-600' : 'text-gray-600'
+            }`}>
+              {currentValue}
+              {(submitted || isMatch) && <span className="ml-2 text-green-500 animate-bounce inline-block">✓</span>}
+            </div>
+          </div>
+
+          {/* Kết quả */}
+          {(submitted || showResult) && (
+            <div className="mt-3 py-2 rounded-lg text-center font-bold text-sm bg-green-200 text-green-800 animate-pulse">
+              🎉 Đúng rồi! {problem} = {answer}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right: Soroban Board - LỚN */}
+      <div className="lg:w-2/3 flex-1 flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-2 min-h-[280px]">
+        <SorobanBoard 
+          mode="free" 
+          showHints={true} 
+          resetKey={practiceIndex}
+          onValueChange={handleValueChange}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Component: Khám phá tự do - có kiểm tra kết quả
+function ExplorePractice({ instruction, target, onComplete, onAnswer, practiceIndex }) {
+  const [explored, setExplored] = useState(false);
+  const [currentValue, setCurrentValue] = useState(0);
+
+  // Reset khi chuyển câu
+  useEffect(() => {
+    setExplored(false);
+    setCurrentValue(0);
+  }, [practiceIndex]);
+
+  // Kiểm tra kết quả khi Soroban thay đổi - TỰ ĐỘNG CHUYỂN KHI ĐÚNG
+  const handleSorobanChange = (value) => {
+    setCurrentValue(value);
+    
+    // Nếu đúng và chưa explored thì tự động submit
+    if (target !== undefined && value === target && !explored) {
+      setExplored(true);
+      // Delay một chút để bé thấy hiệu ứng đúng
+      setTimeout(() => {
+        if (onAnswer) {
+          onAnswer(value, target);
+        }
+      }, 800);
+    }
+  };
+
+  const hasTarget = target !== undefined;
+  const isMatch = hasTarget && currentValue === target;
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-3 h-full">
+      {/* Left: Instruction */}
+      <div className="lg:w-1/3 flex flex-col">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-3 text-center border border-blue-100">
+          <div className="text-2xl mb-2">🔍</div>
+          <p className="text-gray-700 text-sm mb-3">{instruction}</p>
+          
+          {/* Hiển thị target nếu có */}
+          {hasTarget && (
+            <div className="mb-3 p-2 bg-white rounded-lg border-2 border-dashed border-blue-300">
+              <div className="text-xs text-gray-500 mb-1">Mục tiêu:</div>
+              <div className="text-3xl font-bold text-blue-600">{target}</div>
+            </div>
+          )}
+
+          {/* Hiển thị giá trị hiện tại */}
+          {hasTarget && (
+            <div className={`p-2 rounded-lg transition-all ${
+              explored 
+                ? 'bg-green-100 border-2 border-green-400' 
+                : isMatch 
+                  ? 'bg-green-50 border-2 border-green-300' 
+                  : 'bg-gray-50'
+            }`}>
+              <div className="text-xs text-gray-500 mb-1">Bàn tính của em:</div>
+              <div className={`text-2xl font-bold transition-colors ${isMatch || explored ? 'text-green-600' : 'text-gray-600'}`}>
+                {currentValue}
+                {(isMatch || explored) && <span className="ml-2 text-green-500 animate-bounce inline-block">✓</span>}
+              </div>
+              {explored && (
+                <div className="mt-2 text-green-600 font-bold text-sm animate-pulse">
+                  🌟 Giỏi lắm!
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right: Soroban Board */}
+      <div className="lg:w-2/3 flex-1 flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-2 min-h-[280px]">
+        <SorobanBoard 
+          mode="free"
+          showHints={true} 
+          resetKey={practiceIndex}
+          onValueChange={handleSorobanChange}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Component: Ghi nhớ cặp số - OPTIMIZED VERSION
+function MemoryPractice({ pairs, onComplete, showResult }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full">
+      <div className="text-2xl mb-2">🧠</div>
+      <div className="text-gray-600 mb-4 text-center font-medium">Hãy nhớ các "Đôi bạn thân" của số 10 nhé!</div>
+      <div className="flex flex-wrap justify-center gap-3 mb-6">
+        {pairs.map(([a, b], index) => (
+          <div key={index} className="bg-gradient-to-r from-purple-100 to-pink-100 px-5 py-3 rounded-xl shadow-sm hover:scale-105 transition-transform cursor-pointer">
+            <span className="text-2xl font-bold text-purple-600">{a}</span>
+            <span className="text-lg text-pink-400 mx-2">❤️</span>
+            <span className="text-2xl font-bold text-pink-600">{b}</span>
+          </div>
+        ))}
+      </div>
+
+      {!showResult ? (
+        <button
+          onClick={onComplete}
+          className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold shadow-md hover:shadow-lg hover:scale-105 transition-all"
+        >
+          🎯 Em đã nhớ rồi!
+        </button>
+      ) : (
+        <div className="py-2 px-6 bg-green-100 rounded-xl text-green-700 font-bold text-lg">
+          🌟 Trí nhớ siêu đẳng!
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Component: Tính nhẩm nhanh - COMPACT VERSION
+function MentalPractice({ problem, answer, timeLimit = 15, onAnswer, showResult, isCorrect, practiceIndex }) {
+  const [userInput, setUserInput] = useState('');
+  const [timeLeft, setTimeLeft] = useState(timeLimit || 15);
+
+  // Reset timer khi chuyển câu hỏi mới
+  useEffect(() => {
+    setTimeLeft(timeLimit || 15);
+    setUserInput('');
+  }, [practiceIndex, timeLimit]);
+
+  // Timer đếm ngược
+  useEffect(() => {
+    if (showResult || timeLeft <= 0) return;
+    
+    const timer = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 1) {
+          onAnswer(-1); // Hết giờ
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [showResult, onAnswer, practiceIndex]);
+
+  const handleSubmit = () => {
+    if (userInput) {
+      onAnswer(parseInt(userInput));
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center">
+      {/* Problem + Input - Compact */}
+      <div className="w-full bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-gray-500">⚡ Tính nhẩm nhanh nào!</span>
+          <div className={`px-2 py-0.5 rounded-full font-bold text-xs ${
+            timeLeft <= 3 ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600'
+          }`}>
+            ⏱️ {timeLeft}s
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <span className="text-2xl sm:text-3xl font-bold text-purple-600">{problem}</span>
+          <span className="text-2xl sm:text-3xl font-bold text-gray-400">=</span>
+          
+          {!showResult ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && userInput && handleSubmit()}
+                className="w-16 text-center text-xl font-bold border-2 border-purple-300 rounded-lg py-1 focus:border-purple-500 focus:outline-none"
+                placeholder="?"
+                autoFocus
+              />
+              <button
+                onClick={handleSubmit}
+                disabled={!userInput}
+                className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-bold disabled:opacity-50"
+              >
+                ✓
+              </button>
+            </div>
+          ) : (
+            <span className={`text-2xl sm:text-3xl font-bold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+              {answer} {isCorrect ? '✅' : '❌'}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {showResult && (
+        <div className={`mt-2 py-1.5 px-4 rounded-xl font-bold text-sm ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+          {isCorrect ? '⚡ Siêu nhanh! Đúng rồi!' : `💪 Cố lên! Đáp án là ${answer}`}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Component: Chuỗi phép tính - SOROBAN LỚN
+function ChainPractice({ problems, answer, onAnswer, showResult, isCorrect, practiceIndex }) {
+  const [userInput, setUserInput] = useState('');
+
+  // Reset input khi chuyển câu
+  useEffect(() => {
+    setUserInput('');
+  }, [practiceIndex]);
+
+  const handleSubmit = () => {
+    onAnswer(parseInt(userInput));
+  };
+
+  const displayChain = problems.join(' ');
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-3 h-full">
+      {/* Left: Đề bài + Input - GỌN */}
+      <div className="lg:w-1/3 flex flex-col">
+        <div className="bg-gradient-to-r from-indigo-100 to-purple-100 rounded-xl p-3">
+          <div className="text-center text-sm text-gray-600 mb-2">🔗 Tính chuỗi!</div>
+          <div className="flex items-center justify-center gap-1 flex-wrap mb-2">
+            {problems.map((p, i) => (
+              <span key={i} className={`text-lg lg:text-xl font-bold ${i === 0 ? 'text-purple-600' : 'text-pink-500'}`}>
+                {p}
+              </span>
+            ))}
+          </div>
+          
+          <div className="flex items-center justify-center gap-1">
+            <span className="text-xl font-bold text-gray-400">=</span>
+            {!showResult ? (
+              <>
+                <input
+                  type="number"
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && userInput && handleSubmit()}
+                  className="w-16 text-center text-xl font-bold border-2 border-purple-400 rounded-lg py-1.5 focus:border-purple-600 focus:outline-none"
+                  placeholder="?"
+                  autoFocus
+                />
+                <button
+                  onClick={handleSubmit}
+                  disabled={!userInput}
+                  className="px-3 py-1.5 bg-purple-500 text-white rounded-lg font-bold disabled:opacity-50"
+                >
+                  ✓
+                </button>
+              </>
+            ) : (
+              <span className={`text-xl lg:text-2xl font-bold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                {answer} {isCorrect ? '✅' : '❌'}
+              </span>
+            )}
+          </div>
+
+          {showResult && (
+            <div className={`mt-2 py-1.5 rounded-lg text-center font-bold text-sm ${isCorrect ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'}`}>
+              {isCorrect ? '🌟 Xuất sắc!' : `💪 ${displayChain} = ${answer}`}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right: Soroban Board - LỚN */}
+      <div className="lg:w-2/3 flex-1 flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-2 min-h-[280px]">
+        <SorobanBoard mode="free" showHints={false} resetKey={practiceIndex} />
+      </div>
+    </div>
+  );
+}
+
+// Component: Thi đấu tốc độ - COMPACT VERSION
+function SpeedPractice({ count, difficulty, timeLimit, onComplete, showResult, isCorrect }) {
+  const [problems, setProblems] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [userInput, setUserInput] = useState('');
+  const [results, setResults] = useState([]);
+  const [timeLeft, setTimeLeft] = useState(timeLimit);
+  const [finished, setFinished] = useState(false);
+
+  // Difficulty labels for kids
+  const difficultyLabels = {
+    easy: '🟢 Dễ',
+    medium: '🟡 Vừa', 
+    hard: '🔴 Khó'
+  };
+
+  useEffect(() => {
+    const generated = [];
+    for (let i = 0; i < count; i++) {
+      let a, b, op, ans;
+      if (difficulty === 'easy') {
+        a = Math.floor(Math.random() * 5) + 1;
+        b = Math.floor(Math.random() * 5) + 1;
+        op = '+';
+        ans = a + b;
+      } else if (difficulty === 'medium') {
+        a = Math.floor(Math.random() * 20) + 10;
+        b = Math.floor(Math.random() * 10) + 1;
+        op = Math.random() > 0.5 ? '+' : '-';
+        ans = op === '+' ? a + b : a - b;
+      } else {
+        a = Math.floor(Math.random() * 50) + 20;
+        b = Math.floor(Math.random() * 30) + 10;
+        op = Math.random() > 0.5 ? '+' : '-';
+        ans = op === '+' ? a + b : a - b;
+      }
+      generated.push({ problem: `${a}${op}${b}`, answer: ans });
+    }
+    setProblems(generated);
+  }, [count, difficulty]);
+
+  useEffect(() => {
+    if (showResult || finished || timeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 1) {
+          setFinished(true);
+          const correct = results.filter(r => r).length;
+          onComplete(correct, count);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [showResult, finished, timeLeft, results, count, onComplete]);
+
+  const handleSubmit = () => {
+    const isCorrectAnswer = parseInt(userInput) === problems[currentIndex]?.answer;
+    const newResults = [...results, isCorrectAnswer];
+    setResults(newResults);
+    setUserInput('');
+
+    if (currentIndex < count - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      setFinished(true);
+      const correct = newResults.filter(r => r).length;
+      onComplete(correct, count);
+    }
+  };
+
+  if (problems.length === 0) {
+    return <div className="text-center py-4 text-sm text-gray-500">🎮 Đang chuẩn bị trò chơi...</div>;
+  }
+
+  const currentProblem = problems[currentIndex];
+  const correctCount = results.filter(r => r).length;
+
+  return (
+    <div className="flex flex-col items-center">
+      {/* Header - Timer + Progress */}
+      <div className="w-full flex items-center justify-between mb-3 px-2">
+        <div className="text-xs text-purple-600 font-bold bg-purple-50 px-2 py-1 rounded-full">
+          ⚡ {currentIndex + 1}/{count}
+        </div>
+        <div className={`px-3 py-1 rounded-full font-bold text-sm ${timeLeft <= 10 ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-blue-50 text-blue-600'}`}>
+          ⏱️ {timeLeft}s
+        </div>
+        <div className="text-xs text-green-600 font-bold bg-green-50 px-2 py-1 rounded-full">
+          ✅ {correctCount}
+        </div>
+      </div>
+
+      {!finished && !showResult && (
+        <>
+          <div className="text-center mb-4">
+            <div className="text-sm text-gray-400 mb-1">Tính nhanh nào!</div>
+            <div className="text-4xl font-bold text-purple-600 animate-pulse">{currentProblem?.problem} = ?</div>
+          </div>
+
+          <div className="flex gap-2 max-w-xs mx-auto">
+            <input
+              type="number"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && userInput && handleSubmit()}
+              className="flex-1 text-center text-xl font-bold border-2 border-gray-200 rounded-xl py-2 focus:border-purple-500 focus:outline-none"
+              placeholder="?"
+              autoFocus
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={!userInput}
+              className="px-5 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold disabled:opacity-50 hover:scale-105 transition-transform"
+            >
+              ✓
+            </button>
+          </div>
+        </>
+      )}
+
+      {(finished || showResult) && (
+        <div className={`w-full p-4 rounded-xl text-center ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+          <div className="text-3xl mb-1">{isCorrect ? '🏆' : '💪'}</div>
+          <div className="text-xl font-bold">
+            {correctCount}/{count} câu đúng
+          </div>
+          <div className="text-sm mt-1">
+            {isCorrect ? '🌟 Tuyệt vời! Em là siêu sao tính nhẩm!' : '✨ Cố gắng thêm em nhé! Em làm được!'}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Component: Bạn nhỏ (=5) / Bạn lớn (=10) - DÙNG BÀN TÍNH ẢO, TỰ ĐỘNG KIỂM TRA
+function FriendPractice({ question, answer, friendOf, onAnswer, showResult, isCorrect, practiceIndex }) {
+  const [currentValue, setCurrentValue] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
+
+  // Reset khi chuyển câu
+  useEffect(() => {
+    setCurrentValue(0);
+    setSubmitted(false);
+  }, [practiceIndex]);
+
+  // Tự động kiểm tra khi gạt đúng
+  const handleValueChange = (value) => {
+    setCurrentValue(value);
+    
+    // Nếu đúng và chưa submit thì tự động báo đúng
+    if (value === answer && !submitted && !showResult) {
+      setSubmitted(true);
+      setTimeout(() => {
+        onAnswer(value);
+      }, 800);
+    }
+  };
+
+  const friendColor = friendOf === 5 ? 'from-cyan-500 to-blue-500' : 'from-purple-500 to-pink-500';
+  const bgColor = friendOf === 5 ? 'from-cyan-100 to-blue-100' : 'from-purple-100 to-pink-100';
+  const isMatch = currentValue === answer;
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-3 h-full">
+      {/* Left: Question */}
+      <div className="lg:w-1/3 flex flex-col">
+        <div className={`bg-gradient-to-r ${bgColor} rounded-xl p-3`}>
+          <div className="text-center mb-2">
+            <span className="text-3xl">{friendOf === 5 ? '🖐️' : '🔟'}</span>
+            <div className="text-sm font-bold text-gray-700">{friendOf === 5 ? 'Bạn nhỏ' : 'Bạn lớn'}</div>
+          </div>
+          
+          {/* Câu hỏi */}
+          <div className="text-center mb-3">
+            <div className="text-lg text-gray-600 mb-1">{question}</div>
+            <div className="flex items-center justify-center gap-2">
+              <span className={`text-4xl font-black bg-gradient-to-r ${friendColor} text-transparent bg-clip-text`}>?</span>
+            </div>
+          </div>
+
+          {/* Hiển thị giá trị bàn tính */}
+          <div className={`p-3 rounded-xl transition-all ${
+            submitted || showResult
+              ? 'bg-green-100 border-2 border-green-400'
+              : isMatch 
+                ? 'bg-green-50 border-2 border-green-300' 
+                : 'bg-white/70'
+          }`}>
+            <div className="text-xs text-gray-500 mb-1 text-center">Gạt bàn tính:</div>
+            <div className={`text-3xl font-black text-center transition-colors ${
+              submitted || showResult || isMatch ? 'text-green-600' : 'text-gray-600'
+            }`}>
+              {currentValue}
+              {(submitted || isMatch) && !showResult && (
+                <span className="ml-2 text-green-500 animate-bounce inline-block">✓</span>
+              )}
+            </div>
+          </div>
+
+          {/* Kết quả */}
+          {(submitted || showResult) && (
+            <div className={`mt-3 py-2 rounded-lg text-center font-bold text-sm ${
+              isCorrect ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'
+            }`}>
+              {isCorrect 
+                ? `🎉 Đúng rồi! ${friendOf - answer} + ${answer} = ${friendOf}` 
+                : `💪 Đáp án: ${answer}`
+              }
+            </div>
+          )}
+
+          {/* Visual hints */}
+          <div className="mt-3 p-2 bg-white/50 rounded-lg">
+            <div className="text-xs text-gray-500 text-center mb-1">💡 {friendOf === 5 ? 'Bạn nhỏ: cộng = 5' : 'Bạn lớn: cộng = 10'}</div>
+            <div className="flex flex-wrap justify-center gap-1 text-xs">
+              {friendOf === 5 ? (
+                <>
+                  <span className="bg-cyan-100 text-cyan-700 rounded px-2 py-0.5 font-medium">1 ❤️ 4</span>
+                  <span className="bg-cyan-100 text-cyan-700 rounded px-2 py-0.5 font-medium">2 ❤️ 3</span>
+                </>
+              ) : (
+                <>
+                  <span className="bg-purple-100 text-purple-700 rounded px-1.5 py-0.5 font-medium">1❤️9</span>
+                  <span className="bg-purple-100 text-purple-700 rounded px-1.5 py-0.5 font-medium">2❤️8</span>
+                  <span className="bg-purple-100 text-purple-700 rounded px-1.5 py-0.5 font-medium">3❤️7</span>
+                  <span className="bg-purple-100 text-purple-700 rounded px-1.5 py-0.5 font-medium">4❤️6</span>
+                  <span className="bg-purple-100 text-purple-700 rounded px-1.5 py-0.5 font-medium">5❤️5</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right: Soroban Board */}
+      <div className="lg:w-2/3 flex-1 flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-2 min-h-[280px]">
+        <SorobanBoard 
+          mode="free" 
+          showHints={true} 
+          resetKey={practiceIndex}
+          onValueChange={handleValueChange}
+        />
+      </div>
+    </div>
+  );
+}

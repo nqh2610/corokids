@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { LevelBadgeInline } from '@/components/LevelBadge/LevelBadge';
 
 export default function LeaderboardPage() {
   const { status } = useSession();
@@ -42,7 +43,7 @@ export default function LeaderboardPage() {
   if (leaderboard.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 p-4 sm:p-6">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <button
             onClick={() => router.push('/dashboard')}
             className="flex items-center gap-2 mb-4 sm:mb-6 px-4 sm:px-6 py-2 sm:py-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -72,7 +73,7 @@ export default function LeaderboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 p-4 sm:p-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <button
           onClick={() => router.push('/dashboard')}
           className="flex items-center gap-2 mb-4 sm:mb-6 px-4 sm:px-6 py-2 sm:py-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -98,7 +99,10 @@ export default function LeaderboardPage() {
                 <div className="text-lg sm:text-xl font-bold text-gray-800 truncate" title={top3[1].name}>
                   {top3[1].name}
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold mt-2 text-gray-700">⭐{top3[1].totalStars}</div>
+                <div className="my-2">
+                  <LevelBadgeInline totalStars={top3[1].totalStars || 0} />
+                </div>
+                <div className="text-xl sm:text-2xl font-bold text-gray-700">⭐ {(top3[1].totalStars || 0).toLocaleString()}</div>
               </div>
               <div className={`${podiumHeights[1]} bg-gradient-to-b from-gray-300 to-gray-400 rounded-t-2xl sm:rounded-t-3xl mt-2`} />
             </div>
@@ -115,7 +119,10 @@ export default function LeaderboardPage() {
                 <div className="text-xl sm:text-2xl font-bold text-gray-800 truncate" title={top3[0].name}>
                   {top3[0].name}
                 </div>
-                <div className="text-3xl sm:text-4xl font-bold mt-2 text-yellow-800">⭐{top3[0].totalStars}</div>
+                <div className="my-2">
+                  <LevelBadgeInline totalStars={top3[0].totalStars || 0} />
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-yellow-800">⭐ {(top3[0].totalStars || 0).toLocaleString()}</div>
               </div>
               <div className={`${podiumHeights[0]} bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-t-2xl sm:rounded-t-3xl mt-2`} />
             </div>
@@ -129,7 +136,10 @@ export default function LeaderboardPage() {
                 <div className="text-lg sm:text-xl font-bold text-gray-800 truncate" title={top3[2].name}>
                   {top3[2].name}
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold mt-2 text-orange-700">⭐{top3[2].totalStars}</div>
+                <div className="my-2">
+                  <LevelBadgeInline totalStars={top3[2].totalStars || 0} />
+                </div>
+                <div className="text-xl sm:text-2xl font-bold text-orange-700">⭐ {(top3[2].totalStars || 0).toLocaleString()}</div>
               </div>
               <div className={`${podiumHeights[2]} bg-gradient-to-b from-orange-300 to-orange-500 rounded-t-2xl sm:rounded-t-3xl mt-2`} />
             </div>
@@ -156,11 +166,11 @@ export default function LeaderboardPage() {
                       <div className="font-bold text-base sm:text-lg text-gray-800 truncate" title={player.name}>
                         {player.name}
                       </div>
-                      <div className="text-xs sm:text-sm text-gray-600">Level {player.level}</div>
+                      <LevelBadgeInline totalStars={player.totalStars || 0} />
                     </div>
                   </div>
-                  <div className="text-xl sm:text-2xl font-bold text-yellow-600 flex-shrink-0">
-                    ⭐{player.totalStars}
+                  <div className="text-lg sm:text-xl font-bold text-purple-600 flex-shrink-0">
+                    ⭐ {(player.totalStars || 0).toLocaleString()}
                   </div>
                 </div>
               ))}

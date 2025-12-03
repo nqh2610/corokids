@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { calculateLessonStars, getLevelInfo, checkLevelUp } from '@/lib/gamification';
 
 // POST /api/progress - Save lesson progress
 export async function POST(request) {
@@ -19,6 +20,46 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Lấy thông tin user hiện tại
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    });
+
+    // Kiểm tra progress hiện tại để biết số sao cũ và số lần làm
+    const existingProgress = await prisma.progress.findUnique({
+      where: {
+        userId_levelId_lessonId: {
+          userId: session.user.id,
+          levelId: parseInt(levelId),
+          lessonId: parseInt(lessonId)
+        }
+      }
+    });
+
+    // Đếm số lần làm bài này (cho bonus chăm chỉ)
+    const attemptCount = existingProgress ? (existingProgress.attemptCount || 1) + 1 : 1;
+
+    const oldLessonStars = existingProgress?.starsEarned || 0;
+    const newLessonStars = starsEarned || 0;
+    
+    // Chỉ cập nhật sao bài học nếu đạt được nhiều sao hơn lần trước
+    const shouldUpdateLessonStars = newLessonStars > oldLessonStars;
+    const lessonStarsToSave = shouldUpdateLessonStars ? newLessonStars : oldLessonStars;
+
+    // Tính SAO ⭐ kiếm được từ bài học này
+    const standardTime = 300; // 5 phút = 300 giây (thời gian chuẩn)
+    const starsResult = calculateLessonStars(
+      newLessonStars,
+      accuracy || 0,
+      timeSpent || 0,
+      standardTime,
+      currentUser?.streak || 0,
+      attemptCount
+    );
+
+    // Luôn cộng sao khi hoàn thành bài (khuyến khích làm lại)
+    const starsToAdd = completed ? starsResult.totalStars : 0;
+
     // Upsert progress
     const progress = await prisma.progress.upsert({
       where: {
@@ -30,9 +71,9 @@ export async function POST(request) {
       },
       update: {
         completed: completed || false,
-        starsEarned: starsEarned || 0,
+        starsEarned: lessonStarsToSave,
         timeSpent: (timeSpent || 0),
-        accuracy: accuracy || 0,
+        accuracy: shouldUpdateLessonStars ? (accuracy || 0) : (existingProgress?.accuracy || 0),
         completedAt: completed ? new Date() : null
       },
       create: {
@@ -40,27 +81,56 @@ export async function POST(request) {
         levelId: parseInt(levelId),
         lessonId: parseInt(lessonId),
         completed: completed || false,
-        starsEarned: starsEarned || 0,
+        starsEarned: newLessonStars,
         timeSpent: timeSpent || 0,
         accuracy: accuracy || 0,
         completedAt: completed ? new Date() : null
       }
     });
 
-    // Update user total stars if completed
-    if (completed && starsEarned > 0) {
+    // Cập nhật user: sao tổng và level (level tính từ totalStars)
+    let levelUpInfo = null;
+    if (completed && starsToAdd > 0) {
+      const oldTotalStars = currentUser?.totalStars || 0;
+      const newTotalStars = oldTotalStars + starsToAdd;
+      
+      // Tính level mới từ tổng sao
+      const newLevelInfo = getLevelInfo(newTotalStars);
+      
       await prisma.user.update({
         where: { id: session.user.id },
         data: {
-          totalStars: { increment: starsEarned }
+          totalStars: { increment: starsToAdd },
+          level: newLevelInfo.level
         }
       });
+
+      // Kiểm tra lên level
+      levelUpInfo = checkLevelUp(oldTotalStars, newTotalStars);
 
       // Check for achievements
       await checkAchievements(session.user.id);
     }
 
-    return NextResponse.json({ progress, success: true });
+    // Lấy thông tin level hiện tại
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    });
+    const levelInfo = getLevelInfo(updatedUser?.totalStars || 0);
+
+    return NextResponse.json({ 
+      progress, 
+      success: true,
+      isNewRecord: shouldUpdateLessonStars,
+      oldLessonStars,
+      newLessonStars: lessonStarsToSave,
+      // Thông tin SAO kiếm được
+      starsEarned: starsToAdd,
+      starsBreakdown: starsResult.breakdown,
+      // Thông tin Level
+      levelInfo,
+      levelUp: levelUpInfo
+    });
   } catch (error) {
     console.error('Error saving progress:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

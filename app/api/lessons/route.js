@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/prisma';
 
 // GET /api/lessons?levelId=1
@@ -14,6 +14,16 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const levelId = searchParams.get('levelId');
 
+    // Lấy userId từ database nếu chưa có trong session
+    let userId = session.user?.id;
+    if (!userId && session.user?.email) {
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true }
+      });
+      userId = user?.id;
+    }
+
     const where = levelId ? { levelId: parseInt(levelId) } : {};
 
     const lessons = await prisma.lesson.findMany({
@@ -21,13 +31,16 @@ export async function GET(request) {
       orderBy: [{ levelId: 'asc' }, { order: 'asc' }]
     });
 
-    // Get user progress for these lessons
-    const userProgress = await prisma.progress.findMany({
-      where: {
-        userId: session.user.id,
-        levelId: levelId ? parseInt(levelId) : undefined
-      }
-    });
+    // Get user progress for these lessons (chỉ khi có userId)
+    let userProgress = [];
+    if (userId) {
+      userProgress = await prisma.progress.findMany({
+        where: {
+          userId: userId,
+          levelId: levelId ? parseInt(levelId) : undefined
+        }
+      });
+    }
 
     // Map progress to lessons
     const lessonsWithProgress = lessons.map(lesson => {

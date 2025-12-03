@@ -6,7 +6,7 @@ import { compare } from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const handler = NextAuth({
+export const authOptions = {
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60,
@@ -101,6 +101,8 @@ const handler = NextAuth({
     signIn: '/login',
     error: '/login',
   },
-});
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
