@@ -87,7 +87,7 @@ export default function HomePage() {
               Đăng nhập
             </Link>
             <Link href="/register" className="px-4 sm:px-6 py-2 text-sm sm:text-base bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-full hover:scale-105 transition-all shadow-lg">
-              Bắt đầu học
+              Đăng ký
             </Link>
           </div>
         </div>
@@ -116,13 +116,10 @@ export default function HomePage() {
               <strong className="text-purple-600"> Chơi mà học, học mà chơi!</strong>
             </p>
 
-            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8 px-4">
+            <div className="flex justify-center mb-8 px-4">
               <Link href="/register" className="group px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full text-lg font-bold shadow-xl hover:shadow-purple-500/30 transform hover:scale-105 transition-all flex items-center justify-center gap-2">
                 <Sparkles className="w-5 h-5" />
-                Bắt đầu học ngay
-              </Link>
-              <Link href="/learn" className="px-8 py-4 bg-white text-purple-600 rounded-full text-lg font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all border-2 border-purple-100">
-                Xem bài học mẫu
+                Đăng ký ngay
               </Link>
             </div>
 
