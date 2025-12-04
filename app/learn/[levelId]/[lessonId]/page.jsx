@@ -265,6 +265,12 @@ export default function LessonPage() {
   const [levelUpInfo, setLevelUpInfo] = useState(null);
   const [startTime, setStartTime] = useState(null);
 
+  // Filter bỏ các câu hỏi explore có target=0 (vì soroban bắt đầu từ 0, sẽ auto-pass)
+  const filteredPractices = useMemo(() => {
+    const rawPractices = lesson?.content?.practice || [];
+    return rawPractices.filter(p => !(p.type === 'explore' && p.target === 0));
+  }, [lesson]);
+
   // Key để lưu trạng thái trong localStorage
   const getProgressKey = () => `lesson_progress_${levelId}_${lessonId}`;
 
@@ -295,10 +301,9 @@ export default function LessonPage() {
       if (saved) {
         try {
           const data = JSON.parse(saved);
-          const practices = lesson?.content?.practice || [];
           
           // Chỉ khôi phục nếu còn câu chưa làm
-          if (data.practiceIndex < practices.length) {
+          if (data.practiceIndex < filteredPractices.length) {
             setPracticeIndex(data.practiceIndex);
             setPracticeResults(data.practiceResults || []);
             setCurrentStep(data.currentStep || 1);
@@ -372,8 +377,7 @@ export default function LessonPage() {
     setIsCorrect(false); // Reset isCorrect để câu tiếp theo không bị hiện đúng ngay
     setShowCorrectEffect(false); // Reset hiệu ứng
     setShowWrongEffect(false);
-    const practices = lesson?.content?.practice || [];
-    if (practiceIndex < practices.length - 1) {
+    if (practiceIndex < filteredPractices.length - 1) {
       const newIndex = practiceIndex + 1;
       setPracticeIndex(newIndex);
       // Lưu tiến độ vào localStorage
@@ -386,7 +390,7 @@ export default function LessonPage() {
   };
 
   const completeLesson = async () => {
-    const totalCount = (lesson?.content?.practice?.length || 0);
+    const totalCount = filteredPractices.length;
     // Giới hạn correctCount không vượt quá totalCount
     const rawCorrectCount = practiceResults.filter(r => r.correct).length + (isCorrect ? 1 : 0);
     const correctCount = Math.min(rawCorrectCount, totalCount);
@@ -522,10 +526,8 @@ export default function LessonPage() {
 
   const content = lesson.content || {};
   const theory = content.theory || [];
-  // Filter bỏ các câu hỏi explore có target=0 (vì soroban bắt đầu từ 0, sẽ auto-pass)
-  const practices = (content.practice || []).filter(p => 
-    !(p.type === 'explore' && p.target === 0)
-  );
+  // Dùng filteredPractices đã được filter ở trên
+  const practices = filteredPractices;
   const currentPractice = practices[practiceIndex];
 
   // Màn hình hoàn thành - THIẾT KẾ TẬP TRUNG VÀO ĐIỂM THƯỞNG
@@ -661,6 +663,22 @@ export default function LessonPage() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Nếu đang ở bước luyện tập nhưng không còn câu hỏi, tự động hoàn thành
+  if (currentStep === 1 && !currentPractice && practices.length > 0 && !completed) {
+    // Gọi completeLesson một lần
+    if (!showCelebration) {
+      completeLesson();
+    }
+    return (
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tính kết quả...</p>
         </div>
       </div>
     );
