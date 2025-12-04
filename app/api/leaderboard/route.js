@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getLevelInfo } from '@/lib/gamification';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const topUsers = await prisma.user.findMany({ 
     select: { 

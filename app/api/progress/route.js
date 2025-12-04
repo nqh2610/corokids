@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { calculateLessonStars, getLevelInfo, checkLevelUp } from '@/lib/gamification';
 
+export const dynamic = 'force-dynamic';
+
 // POST /api/progress - Save lesson progress
 export async function POST(request) {
   try {

@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { getLevelInfo } from '@/lib/gamification';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/dashboard/stats - Get all dashboard statistics
 export async function GET(request) {
   try {
