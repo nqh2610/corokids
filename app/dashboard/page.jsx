@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { LogOut, Star, Zap, Trophy, ChevronRight, Play, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog/ConfirmDialog';
@@ -136,11 +137,11 @@ export default function DashboardPage() {
               </div>
 
               {/* Streak */}
-              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-100 to-orange-100 rounded-xl">
+              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-100 to-orange-100 rounded-xl" title="Số ngày liên tiếp có hoạt động">
                 <span className="text-base">🔥</span>
                 <div className="text-right">
                   <span className="font-bold text-red-700">{user?.streak || 0}</span>
-                  <span className="text-xs text-red-600 ml-1">ngày</span>
+                  <span className="text-xs text-red-600 ml-1">ngày liên tiếp</span>
                 </div>
               </div>
 
@@ -182,10 +183,10 @@ export default function DashboardPage() {
             <div className="font-bold text-sm text-cyan-700">{(user?.diamonds || 0).toLocaleString()}</div>
             <div className="text-xs text-gray-500">kim cương</div>
           </div>
-          <div className="bg-white rounded-xl p-3 shadow-md text-center">
+          <div className="bg-white rounded-xl p-3 shadow-md text-center" title="Số ngày liên tiếp có hoạt động">
             <div className="text-lg mb-1">🔥</div>
             <div className="font-bold text-sm text-red-700">{user?.streak || 0}</div>
-            <div className="text-xs text-gray-500">ngày</div>
+            <div className="text-xs text-gray-500">liên tiếp</div>
           </div>
           <div className="bg-white rounded-xl p-3 shadow-md text-center">
             <div className="text-lg mb-1">🏆</div>
@@ -285,8 +286,9 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-3 gap-3 sm:gap-4">
-          <button
-            onClick={() => router.push('/learn')}
+          <Link
+            href="/learn"
+            prefetch={true}
             className="group bg-white rounded-2xl p-4 sm:p-5 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all text-center focus:outline-none focus:ring-2 focus:ring-purple-400"
           >
             <div className="text-4xl sm:text-5xl mb-2 group-hover:scale-110 transition-transform">📚</div>
@@ -294,10 +296,11 @@ export default function DashboardPage() {
             {progress?.completedLessons > 0 && (
               <p className="text-xs text-gray-500 mt-1">{progress.completedLessons} bài</p>
             )}
-          </button>
+          </Link>
 
-          <button
-            onClick={() => router.push('/practice')}
+          <Link
+            href="/practice"
+            prefetch={true}
             className="group bg-white rounded-2xl p-4 sm:p-5 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all text-center focus:outline-none focus:ring-2 focus:ring-purple-400"
           >
             <div className="text-4xl sm:text-5xl mb-2 group-hover:scale-110 transition-transform">💪</div>
@@ -305,10 +308,11 @@ export default function DashboardPage() {
             {exercise?.today?.total > 0 && (
               <p className="text-xs text-gray-500 mt-1">{exercise.today.total} hôm nay</p>
             )}
-          </button>
+          </Link>
 
-          <button
-            onClick={() => router.push('/compete')}
+          <Link
+            href="/compete"
+            prefetch={true}
             className="group bg-white rounded-2xl p-4 sm:p-5 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all text-center focus:outline-none focus:ring-2 focus:ring-purple-400"
           >
             <div className="text-4xl sm:text-5xl mb-2 group-hover:scale-110 transition-transform">🏆</div>
@@ -316,7 +320,7 @@ export default function DashboardPage() {
             {compete?.top3Count > 0 && (
               <p className="text-xs text-gray-500 mt-1">Top 3: {compete.top3Count}x</p>
             )}
-          </button>
+          </Link>
         </div>
 
         {/* Nhiệm vụ hôm nay */}

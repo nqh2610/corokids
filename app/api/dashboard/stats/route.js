@@ -5,6 +5,8 @@ import prisma from '@/lib/prisma';
 import { getLevelInfo } from '@/lib/gamification';
 
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+export const revalidate = 0;
 
 // GET /api/dashboard/stats - Get all dashboard statistics
 export async function GET(request) {
@@ -66,6 +68,9 @@ export async function GET(request) {
     // Tính level info
     const levelInfo = getLevelInfo(user?.totalStars || 0);
 
+    // Tính streak thực tế từ activityChart (đếm ngày liên tiếp có hoạt động)
+    const calculatedStreak = calculateStreakFromActivity(activityData);
+
     // Lấy bài học tiếp theo cần học (Continue Learning)
     const nextLesson = await getNextLesson(userId, progressData);
 
@@ -73,6 +78,7 @@ export async function GET(request) {
       success: true,
       user: {
         ...user,
+        streak: calculatedStreak, // Dùng streak tính toán thay vì từ DB
         levelInfo
       },
       nextLesson,
@@ -133,6 +139,7 @@ async function getProgressStats(userId) {
     const uniqueCompletedLessons = new Set(
       completedInLevel.map(p => p.lessonId)
     );
+    // Giới hạn completedCount không vượt quá tổng số bài trong level
     const completedCount = Math.min(uniqueCompletedLessons.size, levelLessons.length);
 
     const totalStarsInLevel = completedInLevel.reduce((sum, p) => sum + p.starsEarned, 0);
@@ -149,9 +156,9 @@ async function getProgressStats(userId) {
     statsByLevel[levelId] = {
       name: levelName,
       total: levelLessons.length,
-      completed: completedCount,
+      completed: Math.min(completedCount, levelLessons.length),
       progress: levelLessons.length > 0 
-        ? Math.min(100, Math.round((completedCount / levelLessons.length) * 100))
+        ? Math.min(100, Math.round((Math.min(completedCount, levelLessons.length) / levelLessons.length) * 100))
         : 0,
       totalStars: totalStarsInLevel,
       maxStars: maxStarsInLevel, // Thêm maxStars
@@ -440,11 +447,10 @@ async function calculateQuestProgress(userId, requirement) {
 
     // === STREAK QUESTS ===
     case 'login_streak': {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { streak: true }
-      });
-      return Math.min(user?.streak || 0, count);
+      // Tính streak thực tế từ activity data thay vì dùng giá trị từ DB
+      const activityData = await getActivityChart(userId);
+      const calculatedStreak = calculateStreakFromActivity(activityData);
+      return Math.min(calculatedStreak, count);
     }
 
     default:
@@ -651,6 +657,33 @@ async function getActivityChart(userId) {
   }
 
   return days;
+}
+
+// Tính streak (số ngày liên tiếp có hoạt động) từ activityChart
+function calculateStreakFromActivity(activityData) {
+  // activityData là mảng 7 ngày từ cũ → mới (index 6 = hôm nay)
+  // Đếm ngày liên tiếp có stars > 0 từ hôm nay trở về trước
+  
+  if (!activityData || activityData.length === 0) return 0;
+  
+  let streak = 0;
+  
+  // Duyệt từ hôm nay (cuối mảng) ngược lại
+  for (let i = activityData.length - 1; i >= 0; i--) {
+    if (activityData[i].stars > 0) {
+      streak++;
+    } else {
+      // Nếu gặp ngày không hoạt động, dừng lại
+      // Ngoại trừ nếu đó là hôm nay (cho phép chưa hoạt động hôm nay)
+      if (i === activityData.length - 1) {
+        // Hôm nay chưa hoạt động - tiếp tục đếm từ hôm qua
+        continue;
+      }
+      break;
+    }
+  }
+  
+  return streak;
 }
 
 // Lấy bài học tiếp theo cần học

@@ -2,6 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import { ArrowLeft, Trophy, Clock, Home, RotateCcw, Medal, Users, TrendingUp } from 'lucide-react';
 import { useToast } from '@/components/Toast/ToastContext';
@@ -652,13 +653,14 @@ export default function CompetePage() {
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="px-4 py-3 flex items-center justify-between">
-            <button
-              onClick={() => router.push('/dashboard')}
+            <Link
+              href="/dashboard"
+              prefetch={true}
               className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur rounded-xl text-white hover:bg-white/20 transition-all"
             >
               <Home size={18} />
               <span className="font-medium text-sm">Trang chủ</span>
-            </button>
+            </Link>
             <h1 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
               <span className="text-2xl">🏆</span> Đấu Trường Thi Đấu
             </h1>
@@ -1111,10 +1113,11 @@ export default function CompetePage() {
                     {leaderboard[1] && (
                       <div className="flex flex-col items-center">
                         <div className="text-3xl sm:text-4xl mb-1">🥈</div>
-                        <div className={`bg-gray-400/30 rounded-xl p-2 sm:p-3 text-center w-20 sm:w-24 ${leaderboard[1].isCurrentUser ? 'ring-2 ring-cyan-400' : ''}`}>
-                          <div className="text-white font-bold text-xs sm:text-sm truncate">{leaderboard[1].userName}</div>
-                          <div className="text-white/70 text-[10px] sm:text-xs">{leaderboard[1].correct}/{totalChallenges}</div>
-                          <div className="text-gray-300 text-[10px]">{leaderboard[1].totalTime}s</div>
+                        <div className="bg-gray-500/20 rounded-full w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center text-white font-bold text-xs mb-1">2</div>
+                        <div className={`bg-gray-400/30 rounded-xl p-2 sm:p-3 text-center min-w-[80px] sm:min-w-[100px] max-w-[100px] sm:max-w-[120px] ${leaderboard[1].isCurrentUser ? 'ring-2 ring-cyan-400' : ''}`}>
+                          <div className="text-white font-bold text-xs sm:text-sm break-words leading-tight min-h-[32px] flex items-center justify-center" title={leaderboard[1].userName}>{leaderboard[1].userName}</div>
+                          <div className="text-white/70 text-[10px] sm:text-xs">✓ {Math.min(leaderboard[1].correct, totalChallenges)} đúng</div>
+                          <div className="text-gray-300 text-[10px]">⏱ {leaderboard[1].totalTime}s</div>
                         </div>
                       </div>
                     )}
@@ -1122,10 +1125,11 @@ export default function CompetePage() {
                     {/* Hạng 1 - Cao nhất */}
                     <div className="flex flex-col items-center -mt-4">
                       <div className="text-4xl sm:text-5xl mb-1 animate-bounce">🥇</div>
-                      <div className={`bg-yellow-500/30 rounded-xl p-3 sm:p-4 text-center w-24 sm:w-28 border-2 border-yellow-400/50 ${leaderboard[0].isCurrentUser ? 'ring-2 ring-cyan-400' : ''}`}>
-                        <div className="text-white font-black text-sm sm:text-base truncate">{leaderboard[0].userName}</div>
-                        <div className="text-yellow-200 text-xs sm:text-sm font-bold">{leaderboard[0].correct}/{totalChallenges}</div>
-                        <div className="text-yellow-300 text-[10px] sm:text-xs">{leaderboard[0].totalTime}s</div>
+                      <div className="bg-yellow-500/30 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-white font-bold text-sm mb-1">1</div>
+                      <div className={`bg-yellow-500/30 rounded-xl p-3 sm:p-4 text-center min-w-[96px] sm:min-w-[112px] max-w-[110px] sm:max-w-[130px] border-2 border-yellow-400/50 ${leaderboard[0].isCurrentUser ? 'ring-2 ring-cyan-400' : ''}`}>
+                        <div className="text-white font-black text-sm sm:text-base break-words leading-tight min-h-[40px] flex items-center justify-center" title={leaderboard[0].userName}>{leaderboard[0].userName}</div>
+                        <div className="text-yellow-200 text-xs sm:text-sm font-bold">✓ {Math.min(leaderboard[0].correct, totalChallenges)} đúng</div>
+                        <div className="text-yellow-300 text-[10px] sm:text-xs">⏱ {leaderboard[0].totalTime}s</div>
                         <div className="text-yellow-400 font-bold text-xs mt-1">⭐ {leaderboard[0].stars}</div>
                       </div>
                     </div>
@@ -1134,10 +1138,11 @@ export default function CompetePage() {
                     {leaderboard[2] && (
                       <div className="flex flex-col items-center">
                         <div className="text-3xl sm:text-4xl mb-1">🥉</div>
-                        <div className={`bg-orange-500/30 rounded-xl p-2 sm:p-3 text-center w-20 sm:w-24 ${leaderboard[2].isCurrentUser ? 'ring-2 ring-cyan-400' : ''}`}>
-                          <div className="text-white font-bold text-xs sm:text-sm truncate">{leaderboard[2].userName}</div>
-                          <div className="text-white/70 text-[10px] sm:text-xs">{leaderboard[2].correct}/{totalChallenges}</div>
-                          <div className="text-orange-300 text-[10px]">{leaderboard[2].totalTime}s</div>
+                        <div className="bg-orange-500/20 rounded-full w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center text-white font-bold text-xs mb-1">3</div>
+                        <div className={`bg-orange-500/30 rounded-xl p-2 sm:p-3 text-center min-w-[80px] sm:min-w-[100px] max-w-[100px] sm:max-w-[120px] ${leaderboard[2].isCurrentUser ? 'ring-2 ring-cyan-400' : ''}`}>
+                          <div className="text-white font-bold text-xs sm:text-sm break-words leading-tight min-h-[32px] flex items-center justify-center" title={leaderboard[2].userName}>{leaderboard[2].userName}</div>
+                          <div className="text-white/70 text-[10px] sm:text-xs">✓ {Math.min(leaderboard[2].correct, totalChallenges)} đúng</div>
+                          <div className="text-orange-300 text-[10px]">⏱ {leaderboard[2].totalTime}s</div>
                         </div>
                       </div>
                     )}
@@ -1165,7 +1170,7 @@ export default function CompetePage() {
                             {entry.userName} {entry.isCurrentUser && '(Bạn)'}
                           </div>
                           <div className="text-white/50 text-[10px] sm:text-xs">
-                            {entry.correct}/{totalChallenges} • {entry.totalTime}s
+                            ✓ {Math.min(entry.correct, totalChallenges)} đúng • ⏱ {entry.totalTime}s
                           </div>
                         </div>
                         <div className="text-yellow-400 font-bold text-xs sm:text-sm">
@@ -1188,7 +1193,7 @@ export default function CompetePage() {
                       <div className="flex-1">
                         <div className="text-cyan-300 font-bold text-sm">{currentUserData.userName} (Bạn)</div>
                         <div className="text-white/60 text-xs">
-                          {currentUserData.correct}/{totalChallenges} đúng • {currentUserData.totalTime}s
+                          ✓ {Math.min(currentUserData.correct, totalChallenges)} đúng • ⏱ {currentUserData.totalTime}s
                         </div>
                       </div>
                       <div className="text-yellow-400 font-bold text-sm">
@@ -1351,12 +1356,13 @@ export default function CompetePage() {
       <div className={`bg-gradient-to-r ${selectedArena.color} shadow-lg flex-shrink-0`}>
         <div className="max-w-6xl mx-auto px-3 py-2 flex items-center gap-3">
           <div className="flex items-center gap-1 flex-shrink-0">
-            <button 
-              onClick={() => router.push('/dashboard')} 
+            <Link 
+              href="/dashboard"
+              prefetch={true}
               className="p-1.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors"
             >
               <Home size={16} />
-            </button>
+            </Link>
             <button 
               onClick={backToArenaDetail}
               className="p-1.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors"

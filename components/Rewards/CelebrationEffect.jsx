@@ -246,8 +246,11 @@ export function CorrectAnswerEffect({ show, onComplete }) {
         onComplete?.();
       }, 1500);
       return () => clearTimeout(timer);
+    } else {
+      setVisible(false);
     }
-  }, [show, onComplete]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show]);
 
   if (!visible) return null;
 
@@ -328,8 +331,11 @@ export function WrongAnswerEffect({ show, onComplete }) {
         onComplete?.();
       }, 800);
       return () => clearTimeout(timer);
+    } else {
+      setVisible(false);
     }
-  }, [show, onComplete]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show]);
 
   if (!visible) return null;
 

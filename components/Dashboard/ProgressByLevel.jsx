@@ -54,7 +54,9 @@ export default function ProgressByLevel({ progress, compact = false, showLessonN
         <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
           {levels.map((levelId, index) => {
             const levelData = byLevel[levelId];
-            const isComplete = levelData.progress === 100;
+            // Giới hạn progress max 100%
+            const safeProgress = Math.min(levelData.progress || 0, 100);
+            const isComplete = safeProgress === 100;
             const colorClass = levelColors[index % levelColors.length];
             
             return (
@@ -74,7 +76,7 @@ export default function ProgressByLevel({ progress, compact = false, showLessonN
                       : 'from-gray-100 to-gray-50'
                   }`}
                   style={{ 
-                    width: `${levelData.progress}%`,
+                    width: `${safeProgress}%`,
                     transition: 'width 0.5s ease-out'
                   }}
                 />
@@ -84,11 +86,11 @@ export default function ProgressByLevel({ progress, compact = false, showLessonN
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold ${
                     isComplete 
                       ? 'bg-green-500 text-white' 
-                      : levelData.progress > 0
+                      : safeProgress > 0
                         ? 'bg-blue-100 text-blue-600'
                         : 'bg-gray-200 text-gray-500'
                   }`}>
-                    {isComplete ? '✓' : `${levelData.progress}%`}
+                    {isComplete ? '✓' : `${safeProgress}%`}
                   </div>
                   
                   <div className="flex-1 min-w-0">
@@ -139,6 +141,7 @@ export default function ProgressByLevel({ progress, compact = false, showLessonN
       <div className="space-y-3">
         {levels.map((levelId, index) => {
           const levelData = byLevel[levelId];
+          const safeProgress = Math.min(levelData.progress || 0, 100);
           const colorClass = levelColors[index % levelColors.length];
           
           return (
@@ -147,12 +150,12 @@ export default function ProgressByLevel({ progress, compact = false, showLessonN
                 <span className="flex items-center gap-1">
                   <span className="font-medium text-gray-700">{levelData.name}</span>
                 </span>
-                <span className="text-gray-500">{levelData.progress}%</span>
+                <span className="text-gray-500">{safeProgress}%</span>
               </div>
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div 
                   className={`h-full bg-gradient-to-r ${colorClass} rounded-full transition-all duration-500`}
-                  style={{ width: `${levelData.progress}%` }}
+                  style={{ width: `${safeProgress}%` }}
                 />
               </div>
             </div>
@@ -177,6 +180,7 @@ export default function ProgressByLevel({ progress, compact = false, showLessonN
       <div className="space-y-4">
         {levels.map((levelId, index) => {
           const levelData = byLevel[levelId];
+          const safeProgress = Math.min(levelData.progress || 0, 100);
           const colorClass = levelColors[index % levelColors.length];
           
           return (
@@ -192,9 +196,9 @@ export default function ProgressByLevel({ progress, compact = false, showLessonN
                     {levelData.completed}/{levelData.total} phần
                   </span>
                   <span className={`font-bold ${
-                    levelData.progress === 100 ? 'text-green-500' : 'text-gray-700'
+                    safeProgress === 100 ? 'text-green-500' : 'text-gray-700'
                   }`}>
-                    {levelData.progress}%
+                    {safeProgress}%
                   </span>
                 </div>
               </div>
@@ -202,9 +206,9 @@ export default function ProgressByLevel({ progress, compact = false, showLessonN
               <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                 <div 
                   className={`h-full bg-gradient-to-r ${colorClass} rounded-full transition-all duration-700 relative`}
-                  style={{ width: `${levelData.progress}%` }}
+                  style={{ width: `${safeProgress}%` }}
                 >
-                  {levelData.progress === 100 && (
+                  {safeProgress === 100 && (
                     <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs">
                       ✓
                     </span>

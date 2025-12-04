@@ -2,6 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import { ArrowLeft, Trophy, Zap, Clock, SkipForward, Home, RotateCcw } from 'lucide-react';
 import { useToast } from '@/components/Toast/ToastContext';
@@ -655,13 +656,14 @@ export default function PracticePage() {
         <div className="max-w-6xl mx-auto px-4 py-4">
           {/* Header - compact */}
           <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => router.push('/dashboard')}
+            <Link
+              href="/dashboard"
+              prefetch={true}
               className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur rounded-xl text-white hover:bg-white/20 transition-all"
             >
               <Home size={18} />
               <span className="font-medium text-sm">Trang chủ</span>
-            </button>
+            </Link>
             <h1 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
               <span className="text-2xl">⚔️</span> Đấu Trường Luyện Tập
             </h1>
@@ -774,70 +776,90 @@ export default function PracticePage() {
     const grade = accuracy >= 90 ? 'S' : accuracy >= 70 ? 'A' : accuracy >= 50 ? 'B' : 'C';
     const gradeColors = { S: 'text-yellow-400', A: 'text-green-400', B: 'text-blue-400', C: 'text-gray-400' };
     const gradeEmojis = { S: '👑', A: '🌟', B: '⭐', C: '💪' };
+    const gradeTexts = { 
+      S: 'XUẤT SẮC!', 
+      A: 'GIỎI LẮM!', 
+      B: 'KHÁ TỐT!', 
+      C: 'CỐ GẮNG THÊM!' 
+    };
+    const gradeDescriptions = {
+      S: 'Bạn là siêu sao! 🌟',
+      A: 'Rất tuyệt vời! 👏',
+      B: 'Tiếp tục phát huy! 💪',
+      C: 'Luyện tập thêm nhé! 📚'
+    };
     
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4">
-        <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 max-w-md w-full text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-3 sm:p-4 overflow-y-auto">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-md w-full text-center my-auto">
           {/* Trophy */}
-          <div className="text-7xl mb-4 animate-bounce">{gradeEmojis[grade]}</div>
+          <div className="text-5xl sm:text-6xl mb-2 sm:mb-3 animate-bounce">{gradeEmojis[grade]}</div>
           
           {/* Title */}
-          <h1 className="text-3xl font-black text-white mb-2">HOÀN THÀNH!</h1>
-          <p className="text-white/70 mb-4">{currentModeInfo?.title} - Cấp {difficulty}</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-white mb-1">HOÀN THÀNH!</h1>
+          <p className="text-white/70 text-sm sm:text-base mb-2 sm:mb-3">{currentModeInfo?.title} - Cấp {difficulty}</p>
           
-          {/* Grade */}
-          <div className={`text-8xl font-black ${gradeColors[grade]} mb-4`}>
-            {grade}
+          {/* Grade với giải thích rõ ràng */}
+          <div className="mb-3 sm:mb-4">
+            <div className={`text-5xl sm:text-6xl font-black ${gradeColors[grade]}`}>
+              {gradeTexts[grade]}
+            </div>
+            <div className="text-white/60 text-sm mt-1">
+              {gradeDescriptions[grade]}
+            </div>
+            <div className={`text-xs ${gradeColors[grade]} mt-1`}>
+              Hạng {grade} • {accuracy}% chính xác
+            </div>
           </div>
           
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div className="bg-white/10 rounded-xl p-3">
-              <div className="text-2xl">⭐</div>
-              <div className="text-2xl font-black text-yellow-400">{finalStarsData.totalStars}</div>
-              <div className="text-xs text-white/60">Sao</div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <div className="bg-white/10 rounded-xl p-2 sm:p-3">
+              <div className="text-xl sm:text-2xl">⭐</div>
+              <div className="text-xl sm:text-2xl font-black text-yellow-400">{finalStarsData.totalStars}</div>
+              <div className="text-[10px] sm:text-xs text-white/60">Sao</div>
             </div>
-            <div className="bg-white/10 rounded-xl p-3">
-              <div className="text-2xl">✓</div>
-              <div className="text-2xl font-black text-green-400">{sessionStats.correct}/{TOTAL_CHALLENGES}</div>
-              <div className="text-xs text-white/60">Đúng</div>
+            <div className="bg-white/10 rounded-xl p-2 sm:p-3">
+              <div className="text-xl sm:text-2xl">✓</div>
+              <div className="text-xl sm:text-2xl font-black text-green-400">{sessionStats.correct}/{TOTAL_CHALLENGES}</div>
+              <div className="text-[10px] sm:text-xs text-white/60">Đúng</div>
             </div>
-            <div className="bg-white/10 rounded-xl p-3">
-              <div className="text-2xl">🔥</div>
-              <div className="text-2xl font-black text-orange-400">{maxStreak}</div>
-              <div className="text-xs text-white/60">Combo</div>
+            <div className="bg-white/10 rounded-xl p-2 sm:p-3">
+              <div className="text-xl sm:text-2xl">🔥</div>
+              <div className="text-xl sm:text-2xl font-black text-orange-400">{maxStreak}</div>
+              <div className="text-[10px] sm:text-xs text-white/60">Combo</div>
             </div>
           </div>
           
-          {/* Breakdown chi tiết sao */}
-          <div className="bg-white/5 rounded-xl p-3 mb-4 text-left">
-            <div className="text-xs text-white/60 mb-2 text-center font-semibold">Chi tiết điểm sao</div>
+          {/* Breakdown chi tiết sao - có thể scroll nếu cần */}
+          <div className="bg-white/5 rounded-xl p-2 sm:p-3 mb-3 sm:mb-4 text-left max-h-40 sm:max-h-48 overflow-y-auto">
+            <div className="text-xs text-white/60 mb-2 text-center font-semibold sticky top-0 bg-white/5 py-1">Chi tiết điểm sao</div>
             {finalStarsData.breakdown.map((item, i) => (
-              <div key={i} className="flex justify-between items-center text-sm py-1 border-b border-white/10 last:border-0">
+              <div key={i} className="flex justify-between items-center text-xs sm:text-sm py-1 border-b border-white/10 last:border-0">
                 <span className="text-white/80">
-                  <span className="mr-2">{item.icon}</span>
+                  <span className="mr-1 sm:mr-2">{item.icon}</span>
                   {item.label}
                 </span>
                 <span className="text-yellow-400 font-bold">+{item.value}</span>
               </div>
             ))}
-            <div className="flex justify-between items-center text-base pt-2 mt-2 border-t border-white/30">
+            <div className="flex justify-between items-center text-sm sm:text-base pt-2 mt-2 border-t border-white/30">
               <span className="text-white font-bold">Tổng cộng</span>
-              <span className="text-yellow-400 font-black text-lg">⭐ {finalStarsData.totalStars}</span>
+              <span className="text-yellow-400 font-black">⭐ {finalStarsData.totalStars}</span>
             </div>
           </div>
           
           {/* Buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <button
               onClick={restartGame}
-              className="flex-1 py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl hover:scale-105 transition-transform"
+              className="flex-1 py-2.5 sm:py-3 px-3 sm:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl hover:scale-105 transition-transform text-sm sm:text-base"
             >
               🔄 Chơi lại
             </button>
             <button
               onClick={() => setMode(null)}
-              className="flex-1 py-3 px-4 bg-white/20 text-white font-bold rounded-xl hover:bg-white/30 transition-colors"
+              className="flex-1 py-2.5 sm:py-3 px-3 sm:px-4 bg-white/20 text-white font-bold rounded-xl hover:bg-white/30 transition-colors text-sm sm:text-base"
             >
               📋 Chọn mode
             </button>
@@ -897,13 +919,14 @@ export default function PracticePage() {
         <div className="max-w-6xl mx-auto px-3 py-2 flex items-center gap-3">
           {/* Left: Navigation */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            <button 
-              onClick={() => router.push('/dashboard')} 
+            <Link 
+              href="/dashboard"
+              prefetch={true}
               className="p-1.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors"
               title="Về trang chủ"
             >
               <Home size={16} />
-            </button>
+            </Link>
             <button 
               onClick={() => {
                 if (isMentalMode) {

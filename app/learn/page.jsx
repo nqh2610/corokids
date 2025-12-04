@@ -2,6 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, PlayCircle, Lock, CheckCircle, Star, Clock, ChevronRight, BookOpen } from 'lucide-react';
 import StarBadge from '@/components/Rewards/StarBadge';
@@ -79,13 +80,14 @@ export default function LearnPage() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => router.push('/dashboard')}
+          <Link
+            href="/dashboard"
+            prefetch={true}
             className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-lg hover:shadow-xl transition-all"
           >
             <ArrowLeft size={18} />
             <span className="text-sm font-bold hidden sm:inline">Dashboard</span>
-          </button>
+          </Link>
           <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-lg">
             <Star className="text-yellow-500" size={18} />
             <span className="font-bold text-gray-700">{totalStars}</span>

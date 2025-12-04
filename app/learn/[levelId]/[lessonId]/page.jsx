@@ -369,6 +369,9 @@ export default function LessonPage() {
 
   const nextPractice = () => {
     setShowResult(false);
+    setIsCorrect(false); // Reset isCorrect để câu tiếp theo không bị hiện đúng ngay
+    setShowCorrectEffect(false); // Reset hiệu ứng
+    setShowWrongEffect(false);
     const practices = lesson?.content?.practice || [];
     if (practiceIndex < practices.length - 1) {
       const newIndex = practiceIndex + 1;
@@ -383,8 +386,10 @@ export default function LessonPage() {
   };
 
   const completeLesson = async () => {
-    const correctCount = practiceResults.filter(r => r.correct).length + (isCorrect ? 1 : 0);
     const totalCount = (lesson?.content?.practice?.length || 0);
+    // Giới hạn correctCount không vượt quá totalCount
+    const rawCorrectCount = practiceResults.filter(r => r.correct).length + (isCorrect ? 1 : 0);
+    const correctCount = Math.min(rawCorrectCount, totalCount);
     const accuracy = totalCount > 0 ? (correctCount / totalCount) * 100 : 100;
     const stars = Math.ceil((accuracy / 100) * (lesson?.stars || 3));
     
@@ -517,13 +522,18 @@ export default function LessonPage() {
 
   const content = lesson.content || {};
   const theory = content.theory || [];
-  const practices = content.practice || [];
+  // Filter bỏ các câu hỏi explore có target=0 (vì soroban bắt đầu từ 0, sẽ auto-pass)
+  const practices = (content.practice || []).filter(p => 
+    !(p.type === 'explore' && p.target === 0)
+  );
   const currentPractice = practices[practiceIndex];
 
   // Màn hình hoàn thành - THIẾT KẾ TẬP TRUNG VÀO ĐIỂM THƯỞNG
   if (completed) {
-    const correctCount = practiceResults.filter(r => r.correct).length + (isCorrect ? 1 : 0);
     const totalCount = practices.length;
+    // Giới hạn correctCount không vượt quá totalCount (tránh > 100%)
+    const rawCorrectCount = practiceResults.filter(r => r.correct).length + (isCorrect ? 1 : 0);
+    const correctCount = Math.min(rawCorrectCount, totalCount);
     const isPerfect = correctCount === totalCount;
     const maxStars = lesson?.stars || 3;
     const accuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 100;
@@ -893,6 +903,7 @@ export default function LessonPage() {
               {/* Hiển thị câu hỏi theo loại */}
               {currentPractice?.type === 'create' && (
                 <CreateNumberPractice
+                  key={`create-${practiceIndex}`}
                   target={currentPractice.target}
                   onCorrect={() => handlePracticeAnswer(currentPractice.target, currentPractice.target)}
                   showResult={showResult}
@@ -903,6 +914,7 @@ export default function LessonPage() {
 
               {currentPractice?.type === 'calc' && (
                 <CalcPractice
+                  key={`calc-${practiceIndex}`}
                   problem={currentPractice.problem}
                   answer={currentPractice.answer}
                   hint={currentPractice.hint}
@@ -915,6 +927,7 @@ export default function LessonPage() {
 
               {currentPractice?.type === 'explore' && (
                 <ExplorePractice
+                  key={`explore-${practiceIndex}`}
                   instruction={currentPractice.instruction}
                   target={currentPractice.target}
                   onAnswer={(ans, target) => handlePracticeAnswer(ans, target)}
@@ -925,6 +938,7 @@ export default function LessonPage() {
 
               {currentPractice?.type === 'memory' && (
                 <MemoryPractice
+                  key={`memory-${practiceIndex}`}
                   pairs={currentPractice.pairs}
                   onComplete={() => handlePracticeAnswer(true, true)}
                   showResult={showResult}
@@ -933,6 +947,7 @@ export default function LessonPage() {
 
               {currentPractice?.type === 'mental' && (
                 <MentalPractice
+                  key={`mental-${practiceIndex}`}
                   problem={currentPractice.problem}
                   answer={currentPractice.answer}
                   timeLimit={currentPractice.timeLimit}
@@ -945,6 +960,7 @@ export default function LessonPage() {
 
               {currentPractice?.type === 'chain' && (
                 <ChainPractice
+                  key={`chain-${practiceIndex}`}
                   problems={currentPractice.problems}
                   answer={currentPractice.answer}
                   onAnswer={(ans) => handlePracticeAnswer(ans, currentPractice.answer)}
@@ -956,6 +972,7 @@ export default function LessonPage() {
 
               {currentPractice?.type === 'speed' && (
                 <SpeedPractice
+                  key={`speed-${practiceIndex}`}
                   count={currentPractice.count}
                   difficulty={currentPractice.difficulty}
                   timeLimit={currentPractice.timeLimit}
@@ -971,6 +988,7 @@ export default function LessonPage() {
               {/* Bạn nhỏ (cộng = 5) */}
               {currentPractice?.type === 'friend5' && (
                 <FriendPractice
+                  key={`friend5-${practiceIndex}`}
                   question={currentPractice.question}
                   answer={currentPractice.answer}
                   friendOf={5}
@@ -984,6 +1002,7 @@ export default function LessonPage() {
               {/* Bạn lớn (cộng = 10) */}
               {currentPractice?.type === 'friend10' && (
                 <FriendPractice
+                  key={`friend10-${practiceIndex}`}
                   question={currentPractice.question}
                   answer={currentPractice.answer}
                   friendOf={10}
