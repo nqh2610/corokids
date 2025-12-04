@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { LogOut, Star, Zap, Trophy, ChevronRight, Play, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog/ConfirmDialog';
 import LevelBadge from '@/components/LevelBadge/LevelBadge';
+import Logo from '@/components/Logo/Logo';
 import ActivityChart from '@/components/Dashboard/ActivityChart';
 import StatsCards from '@/components/Dashboard/StatsCards';
 import QuestList from '@/components/Dashboard/QuestList';
@@ -105,10 +106,10 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             {/* Logo & User */}
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="text-3xl sm:text-4xl">🧮</div>
+              <Logo size="md" showText={false} />
               <div>
                 <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  SoroKids
+                  Sorokid
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-600">Xin chào, {user?.name}!</p>
               </div>
@@ -379,7 +380,7 @@ export default function DashboardPage() {
 
       {/* Footer */}
       <footer className="py-8 text-center text-gray-400 text-sm">
-        <p>© 2025 SoroKids - Học Soroban thật vui 🧮</p>
+        <p>© 2025 Sorokid - Học Soroban thật vui 🧮</p>
       </footer>
     </div>
   );

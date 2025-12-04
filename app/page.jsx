@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { PlayCircle, BookOpen, Trophy, Zap } from 'lucide-react';
 import SorobanBoard from '@/components/Soroban/SorobanBoard';
+import Logo from '@/components/Logo/Logo';
 
 export default function HomePage() {
 
@@ -11,10 +12,7 @@ export default function HomePage() {
       {/* Navigation */}
       <nav className="bg-white shadow-lg">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="text-3xl sm:text-4xl">🧮</div>
-            <div className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">SoroKids</div>
-          </div>
+          <Logo size="md" />
           <div className="flex gap-2 sm:gap-4">
             <Link href="/login" className="px-3 sm:px-6 py-2 text-sm sm:text-base text-purple-600 font-bold hover:bg-purple-50 rounded-full transition-all">Đăng nhập</Link>
             <Link href="/register" className="px-3 sm:px-6 py-2 text-sm sm:text-base bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-full hover:scale-105 transition-all">Đăng ký</Link>
@@ -28,10 +26,10 @@ export default function HomePage() {
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20 lg:py-24">
           <div className="text-center mb-10 sm:mb-16">
             <div className="inline-block mb-6 sm:mb-8">
-              <div className="text-6xl sm:text-7xl lg:text-9xl">🧮</div>
+              <Logo size="2xl" showText={false} />
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black mb-4 sm:mb-6">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">SoroKids</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">Sorokid</span>
             </h1>
             <p className="text-2xl sm:text-3xl lg:text-4xl text-gray-800 mb-4 sm:mb-6 font-black px-4 leading-tight">
               Tính nhẩm nhanh hơn máy tính<br className="hidden sm:block"/>trong 6 tháng! 🚀
@@ -95,7 +93,7 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl p-6 sm:p-8 text-white shadow-xl">
-                <h3 className="text-2xl sm:text-3xl font-black mb-6">Điểm khác biệt của SoroKids</h3>
+                <h3 className="text-2xl sm:text-3xl font-black mb-6">Điểm khác biệt của Sorokid</h3>
                 <ul className="space-y-4 text-base sm:text-lg">
                   <li className="flex items-start gap-3">
                     <span className="text-2xl flex-shrink-0">🎮</span>
@@ -211,7 +209,7 @@ export default function HomePage() {
           {/* Testimonials */}
           <div className="mb-12 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-center mb-10 sm:mb-12 text-gray-800">
-              Phụ huynh nói gì về SoroKids? ⭐
+              Phụ huynh nói gì về Sorokid? ⭐
             </h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
               {/* Testimonial 1 */}
@@ -231,7 +229,7 @@ export default function HomePage() {
                   ))}
                 </div>
                 <p className="text-gray-700 leading-relaxed">
-                  "Con tôi học được 3 tháng đã tính nhẩm nhanh hơn hẳn. Điểm toán ở trường cũng tăng từ 7 lên 9. Rất hài lòng với SoroKids!"
+                  "Con tôi học được 3 tháng đã tính nhẩm nhanh hơn hẳn. Điểm toán ở trường cũng tăng từ 7 lên 9. Rất hài lòng với Sorokid!"
                 </p>
               </div>
 
@@ -306,12 +304,11 @@ export default function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 mb-8 sm:mb-12">
             {/* About */}
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="text-3xl">🧮</div>
-                <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">SoroKids</div>
+              <div className="mb-4">
+                <Logo size="md" />
               </div>
               <p className="text-sm text-gray-400 mb-4 leading-relaxed">
-                Nền tảng học Soroban trực tuyến hàng đầu Việt Nam. Phát triển tư duy toán học cho trẻ từ 5-12 tuổi.
+                Nền tảng học Soroban trực tuyến #1 Việt Nam. Phát triển tư duy toán học cho trẻ từ 5-12 tuổi.
               </p>
               <div className="flex gap-3">
                 <a href="#" className="w-10 h-10 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center transition-all hover:scale-110" aria-label="Facebook">
@@ -356,7 +353,7 @@ export default function HomePage() {
               <ul className="space-y-3 text-sm text-gray-400">
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                  <a href="mailto:hello@sorokids.vn" className="hover:text-white transition-colors">hello@sorokids.vn</a>
+                  <a href="mailto:hello@sorokid.vn" className="hover:text-white transition-colors">hello@sorokid.vn</a>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
@@ -372,7 +369,7 @@ export default function HomePage() {
 
           {/* Bottom bar */}
           <div className="border-t border-gray-800 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-gray-400 text-center sm:text-left">© 2025 SoroKids. Tất cả quyền được bảo lưu.</p>
+            <p className="text-sm text-gray-400 text-center sm:text-left">© 2025 Sorokid. Tất cả quyền được bảo lưu.</p>
             <div className="flex gap-6 text-sm text-gray-400">
               <a href="#" className="hover:text-white transition-colors">Chính sách bảo mật</a>
               <a href="#" className="hover:text-white transition-colors">Điều khoản</a>

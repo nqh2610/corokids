@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { User, Mail, Lock, UserCircle, Chrome, Eye, EyeOff } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import { useToast } from '@/components/Toast/ToastContext';
+import Logo from '@/components/Logo/Logo';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -115,8 +116,10 @@ export default function RegisterPage() {
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8">
           <div className="text-center mb-6 sm:mb-8">
-            <div className="text-5xl sm:text-6xl mb-3 sm:mb-4">🧮</div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Đăng ký</h2>
+            <div className="flex justify-center mb-3 sm:mb-4">
+              <Logo size="xl" showText={false} />
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Đăng ký Sorokid</h2>
             <p className="text-sm sm:text-base text-gray-600 mt-2">Tạo tài khoản mới</p>
           </div>
 

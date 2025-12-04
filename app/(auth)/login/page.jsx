@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, Chrome, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/components/Toast/ToastContext';
+import Logo from '@/components/Logo/Logo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -77,9 +78,11 @@ export default function LoginPage() {
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8">
           <div className="text-center mb-6 sm:mb-8">
-            <div className="text-5xl sm:text-6xl mb-3 sm:mb-4">🧮</div>
+            <div className="flex justify-center mb-3 sm:mb-4">
+              <Logo size="xl" showText={false} />
+            </div>
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Đăng nhập</h2>
-            <p className="text-sm sm:text-base text-gray-600 mt-2">Chào mừng bạn trở lại!</p>
+            <p className="text-sm sm:text-base text-gray-600 mt-2">Chào mừng bạn trở lại Sorokid!</p>
           </div>
 
           {/* Google Login */}
