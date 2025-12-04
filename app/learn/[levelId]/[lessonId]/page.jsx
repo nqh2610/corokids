@@ -8,6 +8,7 @@ import SorobanBoard from '@/components/Soroban/SorobanBoard';
 import StarBadge, { StarReward } from '@/components/Rewards/StarBadge';
 import CelebrationEffect, { CorrectAnswerEffect, WrongAnswerEffect } from '@/components/Rewards/CelebrationEffect';
 import { StarsEarnedCard } from '@/components/LevelBadge/LevelBadge';
+import { useToast } from '@/components/Toast/ToastContext';
 
 // ===== COMPONENT HIỂN THỊ LÝ THUYẾT CẢI TIẾN =====
 function TheoryContent({ theory }) {
@@ -238,6 +239,7 @@ export default function LessonPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
+  const toast = useToast();
   const levelId = parseInt(params.levelId);
   const lessonId = parseInt(params.lessonId);
 
@@ -439,6 +441,11 @@ export default function LessonPage() {
         setExpEarned(data.expEarned || 0);
         setExpBreakdown(data.expBreakdown || []);
         setLevelUpInfo(data.levelUp);
+        
+        // Hiển thị toast thông báo lên level
+        if (data.levelUp) {
+          toast.levelUp(data.levelUp.oldLevel, data.levelUp.newLevel);
+        }
       }
     } catch (error) {
       console.error('Error saving progress:', error);
@@ -553,8 +560,8 @@ export default function LessonPage() {
         <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden">
           
           {/* Header gradient với icon */}
-          <div className="bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 pt-6 pb-12 text-center relative">
-            <div className={`text-6xl ${isPerfect ? 'animate-bounce' : 'animate-pulse'}`}>
+          <div className="bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 pt-4 pb-10 text-center relative">
+            <div className={`text-4xl ${isPerfect ? 'animate-bounce' : 'animate-pulse'}`}>
               {isPerfect ? '🏆' : earnedStars >= maxStars * 0.7 ? '🎉' : '⭐'}
             </div>
             <h1 className="text-2xl font-black text-white mt-2 drop-shadow-lg">
@@ -593,16 +600,11 @@ export default function LessonPage() {
           {/* Nội dung phụ */}
           <div className="p-5 space-y-4">
             
-            {/* Thống kê gọn - 1 dòng */}
-            <div className="flex items-center justify-center gap-6 py-3 bg-gray-50 rounded-xl">
+            {/* Thống kê gọn - 2 cột để tránh bị che */}
+            <div className="flex items-center justify-around py-3 bg-gray-50 rounded-xl">
               <div className="text-center">
-                <div className="text-2xl font-black text-green-500">{correctCount}</div>
-                <div className="text-xs text-gray-500">Đúng</div>
-              </div>
-              <div className="text-gray-300 text-2xl">/</div>
-              <div className="text-center">
-                <div className="text-2xl font-black text-gray-400">{totalCount}</div>
-                <div className="text-xs text-gray-500">Câu hỏi</div>
+                <div className="text-2xl font-black text-green-500">{correctCount}/{totalCount}</div>
+                <div className="text-xs text-gray-500">Đúng / Câu hỏi</div>
               </div>
               <div className="h-8 w-px bg-gray-200"></div>
               <div className="text-center">

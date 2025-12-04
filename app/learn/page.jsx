@@ -72,8 +72,10 @@ export default function LearnPage() {
 
   const currentLevelInfo = LEVELS.find(l => l.id === selectedLevel);
   const completedLessons = lessons.filter(l => l.completed).length;
-  const totalStars = lessons.reduce((sum, l) => sum + (l.starsEarned || 0), 0);
   const maxStars = lessons.reduce((sum, l) => sum + l.stars, 0);
+  // Giới hạn totalStars không vượt quá maxStars (tránh hiện 23/22)
+  const rawTotalStars = lessons.reduce((sum, l) => sum + (l.starsEarned || 0), 0);
+  const totalStars = Math.min(rawTotalStars, maxStars);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 p-4 sm:p-6">

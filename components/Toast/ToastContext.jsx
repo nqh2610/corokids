@@ -29,9 +29,14 @@ export function ToastProvider({ children }) {
   const error = useCallback((message, duration) => addToast(message, 'error', duration), [addToast]);
   const warning = useCallback((message, duration) => addToast(message, 'warning', duration), [addToast]);
   const info = useCallback((message, duration) => addToast(message, 'info', duration), [addToast]);
+  
+  // Toast đặc biệt cho level up - hiển thị lâu hơn và có animation đẹp
+  const levelUp = useCallback((oldLevel, newLevel, duration = 5000) => {
+    return addToast({ oldLevel, newLevel }, 'levelup', duration);
+  }, [addToast]);
 
   return (
-    <ToastContext.Provider value={{ addToast, removeToast, success, error, warning, info }}>
+    <ToastContext.Provider value={{ addToast, removeToast, success, error, warning, info, levelUp }}>
       {children}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
     </ToastContext.Provider>
@@ -58,6 +63,43 @@ function ToastContainer({ toasts, removeToast }) {
 
 function Toast({ toast, onClose }) {
   const { type, message } = toast;
+
+  // Toast đặc biệt cho Level Up
+  if (type === 'levelup') {
+    const { oldLevel, newLevel } = message;
+    return (
+      <div
+        className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 rounded-2xl shadow-2xl p-4 animate-slide-in-right overflow-hidden relative"
+        role="alert"
+      >
+        {/* Sparkle effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1 left-2 text-lg animate-pulse">✨</div>
+          <div className="absolute top-2 right-4 text-sm animate-bounce delay-100">⭐</div>
+          <div className="absolute bottom-1 left-6 text-xs animate-pulse delay-200">💫</div>
+        </div>
+        
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="text-3xl animate-bounce">🎊</div>
+          <div className="flex-1">
+            <div className="text-white font-bold text-sm">LÊN CẤP!</div>
+            <div className="flex items-center gap-2 text-white/90 text-xs mt-1">
+              <span>{oldLevel?.icon} {oldLevel?.name}</span>
+              <span className="text-yellow-300">→</span>
+              <span className="font-bold text-yellow-200">{newLevel?.icon} {newLevel?.name}</span>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-white/70 hover:text-white transition-colors"
+            aria-label="Đóng"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const config = {
     success: {

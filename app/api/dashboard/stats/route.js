@@ -558,7 +558,8 @@ async function getAchievementStats(userId) {
     })
   ]);
 
-  const recentUnlocked = userAchievements.slice(0, 5).map(ua => ({
+  // Tất cả thành tích đã mở khóa
+  const allUnlocked = userAchievements.map(ua => ({
     id: ua.achievement.id,
     name: ua.achievement.name,
     description: ua.achievement.description,
@@ -566,13 +567,17 @@ async function getAchievementStats(userId) {
     unlockedAt: ua.unlockedAt
   }));
 
+  // 5 thành tích gần đây nhất
+  const recentUnlocked = allUnlocked.slice(0, 5);
+
   return {
     total: allAchievements.length,
     unlocked: userAchievements.length,
     progress: allAchievements.length > 0 
       ? Math.round((userAchievements.length / allAchievements.length) * 100)
       : 0,
-    recent: recentUnlocked
+    recent: recentUnlocked,
+    all: allUnlocked  // Thêm tất cả thành tích
   };
 }
 

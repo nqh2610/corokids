@@ -327,7 +327,7 @@ export default function DashboardPage() {
         <QuestList quests={quests} onClaimReward={handleClaimReward} />
 
         {/* Thành tích */}
-        <AchievementList achievements={achievements} />
+        <AchievementList achievements={achievements} allAchievements={achievements?.all} />
 
         {/* Thống kê chi tiết - CUỐI CÙNG */}
         <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden">
