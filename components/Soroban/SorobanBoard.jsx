@@ -7,7 +7,18 @@ import { HelpCircle, Lightbulb, RotateCcw } from 'lucide-react';
 const NUM_COLUMNS = 9;
 const COLUMN_LABELS = ['Tr.Tr', 'Ch.Tr', 'Triệu', 'Tr.N', 'Ch.N', 'Nghìn', 'Trăm', 'Chục', 'Đ.vị'];
 
-export default function SorobanBoard({ targetNumber, mode = 'free', onCorrect, onValueChange, showHints = true, compact = false, resetKey }) {
+export default function SorobanBoard({ 
+  targetNumber, 
+  mode = 'free', 
+  onCorrect, 
+  onValueChange, 
+  showHints = true, 
+  compact = false, 
+  resetKey,
+  highlightColumn = null, // Cột đang được highlight trong tutorial mode
+  tutorialMode = false,   // Có đang ở tutorial mode không
+  tutorialBeads = null    // Trạng thái hạt từ tutorial (nếu có)
+}) {
   // State cho hạt: mỗi cột có [heavenBead, earth1, earth2, earth3, earth4]
   // true = hạt đã được đẩy về thanh ngang (đang đếm)
   // false = hạt ở vị trí nghỉ (không đếm)
@@ -73,6 +84,13 @@ export default function SorobanBoard({ targetNumber, mode = 'free', onCorrect, o
       }
     }
   }, [beads, mode, targetNumber, onCorrect, onValueChange]);
+
+  // Cập nhật beads từ tutorialBeads khi ở tutorial mode
+  useEffect(() => {
+    if (tutorialMode && tutorialBeads) {
+      setBeads(tutorialBeads);
+    }
+  }, [tutorialMode, tutorialBeads]);
 
   const calculateValue = (col) => {
     // Heaven bead: nếu true (đẩy xuống) = 5
@@ -272,34 +290,42 @@ export default function SorobanBoard({ targetNumber, mode = 'free', onCorrect, o
           <div className="relative">
             {/* Heaven beads section */}
             <div className="flex justify-between gap-0.5 sm:gap-1">
-              {beads.map((col, colIndex) => (
-                <div key={colIndex} className="relative flex flex-col items-center flex-1">
-                  {/* Rod */}
-                  <div className={`absolute left-1/2 -translate-x-1/2 top-0 rounded-full bg-gradient-to-b from-amber-400 via-amber-500 to-amber-500 ${
-                    compact ? 'w-0.5 bottom-[-6px]' : 'w-1 bottom-[-8px] sm:bottom-[-10px]'
-                  }`}></div>
-                  
-                  {/* Heaven bead */}
-                  <div className={`relative flex flex-col justify-start pt-0.5 ${compact ? 'h-12' : 'h-16 sm:h-20'}`}>
-                    <button
-                      onClick={() => toggleBead(colIndex, 0)}
-                      className={`relative z-10 rounded-full cursor-pointer transition-transform duration-100 active:scale-95 ${
-                        compact ? 'w-6 h-6' : 'w-8 h-8 sm:w-10 sm:h-10'
-                      } ${col[0] ? (compact ? 'translate-y-5' : 'translate-y-7 sm:translate-y-9') : 'translate-y-0'}`}
-                      aria-label={`Hạt 5 cột ${colIndex + 1}`}
-                    >
-                      <div className={`absolute inset-0 rounded-full shadow-lg transition-colors duration-100 ${
-                        col[0] 
-                          ? 'bg-gradient-to-br from-red-400 to-red-600 ring-2 ring-white/60' 
-                          : 'bg-gradient-to-br from-red-300 to-red-500'
-                      }`}>
-                        <div className="absolute inset-1 rounded-full bg-gradient-to-br from-white/50 via-transparent to-transparent"></div>
-                        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-800/70 ${compact ? 'w-1 h-1' : 'w-1.5 h-1.5 sm:w-2 sm:h-2'}`}></div>
-                      </div>
-                    </button>
+              {beads.map((col, colIndex) => {
+                const isHighlighted = tutorialMode && highlightColumn === colIndex;
+                return (
+                  <div key={colIndex} className={`relative flex flex-col items-center flex-1 rounded-lg transition-all duration-300 ${
+                    isHighlighted ? 'bg-yellow-400/30 ring-2 ring-yellow-400 shadow-lg shadow-yellow-400/50' : ''
+                  }`}>
+                    {/* Rod */}
+                    <div className={`absolute left-1/2 -translate-x-1/2 top-0 rounded-full bg-gradient-to-b from-amber-400 via-amber-500 to-amber-500 ${
+                      compact ? 'w-0.5 bottom-[-6px]' : 'w-1 bottom-[-8px] sm:bottom-[-10px]'
+                    }`}></div>
+                    
+                    {/* Heaven bead */}
+                    <div className={`relative flex flex-col justify-start pt-0.5 ${compact ? 'h-12' : 'h-16 sm:h-20'}`}>
+                      <button
+                        onClick={() => toggleBead(colIndex, 0)}
+                        disabled={tutorialMode}
+                        className={`relative z-10 rounded-full cursor-pointer transition-all duration-200 active:scale-95 ${
+                          compact ? 'w-6 h-6' : 'w-8 h-8 sm:w-10 sm:h-10'
+                        } ${col[0] ? (compact ? 'translate-y-5' : 'translate-y-7 sm:translate-y-9') : 'translate-y-0'} ${
+                          tutorialMode ? 'cursor-not-allowed' : ''
+                        } ${isHighlighted ? 'animate-pulse' : ''}`}
+                        aria-label={`Hạt 5 cột ${colIndex + 1}`}
+                      >
+                        <div className={`absolute inset-0 rounded-full shadow-lg transition-colors duration-100 ${
+                          col[0] 
+                            ? 'bg-gradient-to-br from-red-400 to-red-600 ring-2 ring-white/60' 
+                            : 'bg-gradient-to-br from-red-300 to-red-500'
+                        } ${isHighlighted && col[0] ? 'ring-4 ring-yellow-300' : ''}`}>
+                          <div className="absolute inset-1 rounded-full bg-gradient-to-br from-white/50 via-transparent to-transparent"></div>
+                          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-800/70 ${compact ? 'w-1 h-1' : 'w-1.5 h-1.5 sm:w-2 sm:h-2'}`}></div>
+                        </div>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             
             {/* Horizontal divider bar */}
@@ -310,40 +336,48 @@ export default function SorobanBoard({ targetNumber, mode = 'free', onCorrect, o
             
             {/* Earth beads section */}
             <div className="flex justify-between gap-0.5 sm:gap-1">
-              {beads.map((col, colIndex) => (
-                <div key={colIndex} className="relative flex flex-col items-center flex-1">
-                  {/* Rod */}
-                  <div className={`absolute left-1/2 -translate-x-1/2 bottom-0 rounded-full bg-gradient-to-b from-amber-500 via-amber-500 to-amber-400 ${
-                    compact ? 'w-0.5 top-[-6px]' : 'w-1 top-[-8px] sm:top-[-10px]'
-                  }`}></div>
-                  
-                  {/* 4 Earth beads */}
-                  <div className={`flex flex-col ${compact ? 'gap-0.5 pt-2' : 'gap-0.5 sm:gap-1 pt-3 sm:pt-4'}`}>
-                    {[1, 2, 3, 4].map((beadIdx) => {
-                      const isUp = col[beadIdx];
-                      return (
-                        <button
-                          key={beadIdx}
-                          onClick={() => toggleBead(colIndex, beadIdx)}
-                          className={`relative z-10 rounded-full cursor-pointer transition-transform duration-100 active:scale-95 ${
-                            compact ? 'w-6 h-6' : 'w-8 h-8 sm:w-10 sm:h-10'
-                          } ${isUp ? (compact ? '-translate-y-2' : '-translate-y-3 sm:-translate-y-4') : (compact ? 'translate-y-0.5' : 'translate-y-1 sm:translate-y-1.5')}`}
-                          aria-label={`Hạt ${beadIdx} cột ${colIndex + 1}`}
-                        >
-                          <div className={`absolute inset-0 rounded-full shadow-lg transition-colors duration-100 ${
-                            isUp 
-                              ? 'bg-gradient-to-br from-yellow-300 to-amber-500 ring-2 ring-white/60' 
-                              : 'bg-gradient-to-br from-amber-500 to-amber-700'
-                          }`}>
-                            <div className="absolute inset-1 rounded-full bg-gradient-to-br from-white/50 via-transparent to-transparent"></div>
-                            <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-800/60 ${compact ? 'w-1 h-1' : 'w-1.5 h-1.5 sm:w-2 sm:h-2'}`}></div>
-                          </div>
-                        </button>
-                      );
-                    })}
+              {beads.map((col, colIndex) => {
+                const isHighlighted = tutorialMode && highlightColumn === colIndex;
+                return (
+                  <div key={colIndex} className={`relative flex flex-col items-center flex-1 rounded-lg transition-all duration-300 ${
+                    isHighlighted ? 'bg-yellow-400/30 ring-2 ring-yellow-400 shadow-lg shadow-yellow-400/50' : ''
+                  }`}>
+                    {/* Rod */}
+                    <div className={`absolute left-1/2 -translate-x-1/2 bottom-0 rounded-full bg-gradient-to-b from-amber-500 via-amber-500 to-amber-400 ${
+                      compact ? 'w-0.5 top-[-6px]' : 'w-1 top-[-8px] sm:top-[-10px]'
+                    }`}></div>
+                    
+                    {/* 4 Earth beads */}
+                    <div className={`flex flex-col ${compact ? 'gap-0.5 pt-2' : 'gap-0.5 sm:gap-1 pt-3 sm:pt-4'}`}>
+                      {[1, 2, 3, 4].map((beadIdx) => {
+                        const isUp = col[beadIdx];
+                        return (
+                          <button
+                            key={beadIdx}
+                            onClick={() => toggleBead(colIndex, beadIdx)}
+                            disabled={tutorialMode}
+                            className={`relative z-10 rounded-full cursor-pointer transition-all duration-200 active:scale-95 ${
+                              compact ? 'w-6 h-6' : 'w-8 h-8 sm:w-10 sm:h-10'
+                            } ${isUp ? (compact ? '-translate-y-2' : '-translate-y-3 sm:-translate-y-4') : (compact ? 'translate-y-0.5' : 'translate-y-1 sm:translate-y-1.5')} ${
+                              tutorialMode ? 'cursor-not-allowed' : ''
+                            } ${isHighlighted ? 'animate-pulse' : ''}`}
+                            aria-label={`Hạt ${beadIdx} cột ${colIndex + 1}`}
+                          >
+                            <div className={`absolute inset-0 rounded-full shadow-lg transition-colors duration-100 ${
+                              isUp 
+                                ? 'bg-gradient-to-br from-yellow-300 to-amber-500 ring-2 ring-white/60' 
+                                : 'bg-gradient-to-br from-amber-500 to-amber-700'
+                            } ${isHighlighted && isUp ? 'ring-4 ring-yellow-300' : ''}`}>
+                              <div className="absolute inset-1 rounded-full bg-gradient-to-br from-white/50 via-transparent to-transparent"></div>
+                              <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-800/60 ${compact ? 'w-1 h-1' : 'w-1.5 h-1.5 sm:w-2 sm:h-2'}`}></div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

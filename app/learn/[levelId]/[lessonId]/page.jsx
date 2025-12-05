@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle, Star, Clock, RotateCcw, Home, BookOpen, Target, Lightbulb, Menu, X, List, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, Star, Clock, RotateCcw, Home, BookOpen, Target, Lightbulb, Menu, X, List, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import SorobanBoard from '@/components/Soroban/SorobanBoard';
 import StarBadge, { StarReward } from '@/components/Rewards/StarBadge';
 import CelebrationEffect, { CorrectAnswerEffect, WrongAnswerEffect } from '@/components/Rewards/CelebrationEffect';
@@ -1202,90 +1202,381 @@ function CreateNumberPractice({ target, onCorrect, showResult, isCorrect, practi
   );
 }
 
-// Component: Tính toán - HỌC SINH PHẢI GẠT BÀN TÍNH, TỰ ĐỘNG KIỂM TRA
+// ===== MINI SOROBAN DEMO - Bàn tính thu nhỏ để hướng dẫn =====
+function MiniSorobanDemo({ value = 0, highlightColumn = null, showArrow = false, arrowDirection = 'up' }) {
+  // Chuyển số thành trạng thái hạt (chỉ hiện 3 cột: trăm, chục, đơn vị)
+  const getBeadState = (digit) => {
+    const heaven = digit >= 5;
+    const earth = digit >= 5 ? digit - 5 : digit;
+    return { heaven, earth };
+  };
+
+  const digits = value.toString().padStart(3, '0').split('').map(Number);
+  const columns = [
+    { label: 'Trăm', digit: digits[0], index: 6 },
+    { label: 'Chục', digit: digits[1], index: 7 },
+    { label: 'Đ.vị', digit: digits[2], index: 8 }
+  ];
+
+  return (
+    <div className="bg-gradient-to-b from-amber-700 to-amber-800 rounded-lg p-2 shadow-lg">
+      <div className="flex justify-center gap-1">
+        {columns.map((col, colIdx) => {
+          const state = getBeadState(col.digit);
+          const isHighlighted = highlightColumn === col.index;
+          
+          return (
+            <div 
+              key={colIdx} 
+              className={`flex flex-col items-center px-1 rounded transition-all ${
+                isHighlighted ? 'bg-yellow-400/30 ring-2 ring-yellow-400' : ''
+              }`}
+            >
+              {/* Heaven bead */}
+              <div className="h-6 flex flex-col justify-end relative">
+                <div className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                  state.heaven 
+                    ? 'bg-gradient-to-br from-red-400 to-red-600 translate-y-1' 
+                    : 'bg-gradient-to-br from-red-300 to-red-400 -translate-y-1'
+                }`} />
+                {isHighlighted && showArrow && state.heaven && (
+                  <div className="absolute -right-3 top-1/2 text-yellow-500 animate-bounce text-xs">👇</div>
+                )}
+              </div>
+              
+              {/* Divider */}
+              <div className="w-full h-0.5 bg-amber-900 my-0.5" />
+              
+              {/* Earth beads */}
+              <div className="flex flex-col gap-0.5">
+                {[0, 1, 2, 3].map((i) => {
+                  const isUp = i < state.earth;
+                  return (
+                    <div 
+                      key={i}
+                      className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                        isUp 
+                          ? 'bg-gradient-to-br from-yellow-300 to-amber-500 -translate-y-0.5' 
+                          : 'bg-gradient-to-br from-amber-400 to-amber-600 translate-y-0.5'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+              
+              {/* Label */}
+              <div className={`text-[8px] mt-1 font-bold ${isHighlighted ? 'text-yellow-300' : 'text-amber-200'}`}>
+                {col.label}
+              </div>
+              <div className={`text-xs font-bold ${isHighlighted ? 'text-yellow-300' : 'text-white'}`}>
+                {col.digit}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Component: Tính toán - HỌC SINH LÀM TỪNG BƯỚC THEO HƯỚNG DẪN
 function CalcPractice({ problem, answer, hint, onAnswer, showResult, isCorrect, practiceIndex }) {
   const [currentValue, setCurrentValue] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideSteps, setGuideSteps] = useState([]);
+  const [currentGuideStep, setCurrentGuideStep] = useState(0);
+  const [stepCompleted, setStepCompleted] = useState(false);
+  const [sorobanKey, setSorobanKey] = useState(0);
 
   // Reset khi chuyển câu
   useEffect(() => {
     setCurrentValue(0);
     setSubmitted(false);
+    setShowGuide(false);
+    setGuideSteps([]);
+    setCurrentGuideStep(0);
+    setStepCompleted(false);
+    setSorobanKey(prev => prev + 1);
   }, [practiceIndex]);
 
-  // Tự động kiểm tra khi gạt đúng
+  // Phân tích bài toán thành các bước
+  useEffect(() => {
+    if (problem) {
+      const steps = parseSimpleProblem(problem, answer);
+      setGuideSteps(steps);
+    }
+  }, [problem, answer]);
+
+  // Kiểm tra khi học sinh làm đúng bước hiện tại
   const handleValueChange = (value) => {
     setCurrentValue(value);
     
-    // Nếu đúng và chưa submit thì tự động báo đúng
-    if (value === answer && !submitted) {
-      setSubmitted(true);
-      setTimeout(() => {
-        onAnswer(value);
-      }, 800);
+    if (showGuide && guideSteps.length > 0) {
+      const currentStep = guideSteps[currentGuideStep];
+      const targetValue = currentStep?.demoValue;
+      
+      if (value === targetValue && !stepCompleted) {
+        setStepCompleted(true);
+        setTimeout(() => {
+          if (currentGuideStep < guideSteps.length - 1) {
+            setCurrentGuideStep(prev => prev + 1);
+            setStepCompleted(false);
+          } else {
+            setSubmitted(true);
+            setTimeout(() => onAnswer(value), 500);
+          }
+        }, 1000);
+      }
+    } else {
+      if (value === answer && !submitted) {
+        setSubmitted(true);
+        setTimeout(() => onAnswer(value), 800);
+      }
     }
   };
 
   const isMatch = currentValue === answer;
+  const currentStep = guideSteps[currentGuideStep];
+  const isStepMatch = showGuide && currentStep && currentValue === currentStep.demoValue;
 
   return (
     <div className="flex flex-col lg:flex-row gap-3 h-full">
-      {/* Left: Đề bài */}
-      <div className="lg:w-1/3 flex flex-col">
+      {/* Left: Đề bài + Hướng dẫn */}
+      <div className="lg:w-2/5 flex flex-col gap-2">
+        {/* Phép tính */}
         <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl p-3">
-          <div className="text-center text-sm text-gray-600 mb-2">🧮 Gạt bàn tính để tính!</div>
-          
-          {/* Phép tính */}
-          <div className="text-center mb-3">
+          <div className="text-center mb-2">
             <span className="text-3xl lg:text-4xl font-black text-purple-600">{problem}</span>
             <span className="text-3xl lg:text-4xl font-bold text-gray-400 mx-2">=</span>
             <span className="text-3xl lg:text-4xl font-black text-purple-400">?</span>
           </div>
 
-          {/* Gợi ý */}
-          {hint && !showResult && !submitted && (
-            <div className="text-center mb-3">
-              <span className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded-full">💡 {hint}</span>
-            </div>
-          )}
-
-          {/* Hiển thị giá trị bàn tính */}
-          <div className={`p-3 rounded-xl transition-all ${
-            submitted || showResult
-              ? 'bg-green-100 border-2 border-green-400'
-              : isMatch 
-                ? 'bg-green-50 border-2 border-green-300' 
-                : 'bg-white/70'
+          {/* Kết quả trên bàn tính */}
+          <div className={`p-2 rounded-xl transition-all ${
+            submitted || isMatch ? 'bg-green-100 border-2 border-green-400' : 'bg-white/70'
           }`}>
-            <div className="text-xs text-gray-500 mb-1 text-center">Kết quả trên bàn tính:</div>
-            <div className={`text-3xl font-black text-center transition-colors ${
-              submitted || showResult || isMatch ? 'text-green-600' : 'text-gray-600'
-            }`}>
+            <div className="text-xs text-gray-500 text-center">Bàn tính của em:</div>
+            <div className={`text-2xl font-black text-center ${submitted || isMatch ? 'text-green-600' : 'text-gray-600'}`}>
               {currentValue}
-              {(submitted || isMatch) && <span className="ml-2 text-green-500 animate-bounce inline-block">✓</span>}
+              {(submitted || isMatch) && <span className="ml-2 animate-bounce inline-block">✅</span>}
             </div>
           </div>
 
-          {/* Kết quả */}
-          {(submitted || showResult) && (
-            <div className="mt-3 py-2 rounded-lg text-center font-bold text-sm bg-green-200 text-green-800 animate-pulse">
+          {submitted && (
+            <div className="mt-2 py-2 rounded-lg text-center font-bold text-sm bg-green-200 text-green-800">
               🎉 Đúng rồi! {problem} = {answer}
             </div>
           )}
+
+          {/* Nút xem hướng dẫn */}
+          {!submitted && !showResult && (
+            <button
+              onClick={() => { 
+                setShowGuide(!showGuide); 
+                setCurrentGuideStep(0);
+                setStepCompleted(false);
+                if (!showGuide) setSorobanKey(prev => prev + 1);
+              }}
+              className={`mt-2 w-full py-2 rounded-lg font-bold text-sm transition-all ${
+                showGuide ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+              }`}
+            >
+              {showGuide ? '✕ Tự làm' : '📖 Xem hướng dẫn'}
+            </button>
+          )}
         </div>
+
+        {/* Panel Hướng Dẫn - Gọn gàng hơn */}
+        {showGuide && !submitted && guideSteps.length > 0 && (
+          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-3 text-white shadow-lg">
+            {/* Header + Progress */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-bold text-sm">📖 Bước {currentGuideStep + 1}/{guideSteps.length}</span>
+              <div className="flex gap-1">
+                {guideSteps.map((_, idx) => (
+                  <div 
+                    key={idx}
+                    className={`w-2 h-2 rounded-full ${
+                      idx < currentGuideStep ? 'bg-green-400' : idx === currentGuideStep ? 'bg-yellow-400' : 'bg-white/30'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Hướng dẫn */}
+            <div className={`rounded-lg p-2 mb-2 ${stepCompleted ? 'bg-green-400/30' : 'bg-white/10'}`}>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{currentStep?.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm">{currentStep?.title}</div>
+                  <div className="text-xs text-white/80 truncate">{currentStep?.instruction}</div>
+                </div>
+              </div>
+              {stepCompleted && (
+                <div className="text-center text-yellow-300 font-bold text-sm mt-1 animate-pulse">
+                  ✨ Đúng! Chuyển bước tiếp...
+                </div>
+              )}
+            </div>
+
+            {/* Mini Soroban + Mục tiêu */}
+            <div className="flex items-center gap-3">
+              <MiniSorobanDemo value={currentStep?.demoValue || 0} highlightColumn={currentStep?.column} />
+              <div className="flex-1 text-center">
+                <div className="text-xs text-white/60">🎯 Mục tiêu</div>
+                <div className="text-2xl font-black text-yellow-300">{currentStep?.demoValue}</div>
+                <div className={`text-xs mt-1 ${isStepMatch ? 'text-green-300' : 'text-white/60'}`}>
+                  Em đang: <span className="font-bold">{currentValue}</span>
+                  {isStepMatch && ' ✓'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Gợi ý */}
+        {hint && !showGuide && !submitted && (
+          <div className="text-center">
+            <span className="text-xs text-amber-700 bg-amber-100 px-3 py-1 rounded-full">💡 {hint}</span>
+          </div>
+        )}
       </div>
 
-      {/* Right: Soroban Board - LỚN */}
-      <div className="lg:w-2/3 flex-1 flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-2 min-h-[280px]">
-        <SorobanBoard 
-          mode="free" 
-          showHints={true} 
-          resetKey={practiceIndex}
-          onValueChange={handleValueChange}
-        />
+      {/* Right: Bàn tính */}
+      <div className={`lg:w-3/5 flex-1 flex flex-col rounded-xl p-2 min-h-[280px] transition-all ${
+        stepCompleted ? 'bg-gradient-to-br from-green-100 to-emerald-100' : 'bg-gradient-to-br from-amber-50 to-orange-50'
+      }`}>
+        <div className={`text-center text-sm font-medium mb-1 py-1 rounded-lg ${
+          showGuide ? stepCompleted ? 'text-green-700 bg-green-200' : 'text-blue-700 bg-blue-100' : 'text-gray-500'
+        }`}>
+          {showGuide 
+            ? stepCompleted ? '🎉 Tuyệt vời!' : `🎯 Gạt để được số ${currentStep?.demoValue}`
+            : '🧮 Gạt bàn tính để tính!'
+          }
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <SorobanBoard 
+            mode="free" 
+            showHints={!showGuide} 
+            resetKey={`${practiceIndex}-${sorobanKey}`}
+            onValueChange={handleValueChange}
+            highlightColumn={showGuide ? currentStep?.column : null}
+          />
+        </div>
       </div>
     </div>
   );
+}
+
+// Hàm phân tích phép tính thành các bước với hướng dẫn chi tiết
+function parseSimpleProblem(problem, answer) {
+  const steps = [];
+  
+  const match = problem.replace(/\s/g, '').match(/^(\d+)([\+\-])(\d+)$/);
+  if (!match) {
+    return [{
+      emoji: '🎯',
+      title: `Tính ${problem}`,
+      instruction: `Gạt bàn tính để được kết quả ${answer}`,
+      demoValue: answer,
+      column: 8
+    }];
+  }
+
+  const num1 = parseInt(match[1]);
+  const operator = match[2];
+  const num2 = parseInt(match[3]);
+  const result = operator === '+' ? num1 + num2 : num1 - num2;
+
+  // Bước 1: Đặt số đầu tiên
+  steps.push({
+    emoji: '1️⃣',
+    title: `Đặt số ${num1}`,
+    instruction: num1 < 5 
+      ? `Gạt ${num1} hạt đất lên (hạt vàng bên dưới) ở cột Đơn vị`
+      : `Gạt hạt trời xuống (hạt đỏ = 5), rồi gạt ${num1 - 5} hạt đất lên`,
+    demoValue: num1,
+    column: 8
+  });
+
+  // Bước 2: Thực hiện phép tính
+  if (operator === '+') {
+    if (num1 + num2 <= 4) {
+      steps.push({
+        emoji: '2️⃣',
+        title: `Cộng thêm ${num2}`,
+        instruction: `Gạt thêm ${num2} hạt đất lên nữa`,
+        demoValue: result,
+        column: 8
+      });
+    } else if (num1 < 5 && result >= 5 && result <= 9) {
+      steps.push({
+        emoji: '2️⃣',
+        title: `Cộng ${num2} (dùng hạt trời)`,
+        instruction: `Gạt hạt trời (đỏ) xuống = 5, điều chỉnh hạt đất còn ${result - 5}`,
+        demoValue: result,
+        column: 8
+      });
+    } else if (result >= 10) {
+      const tens = Math.floor(result / 10);
+      const ones = result % 10;
+      steps.push({
+        emoji: '2️⃣',
+        title: `Cộng ${num2} (nhớ sang chục)`,
+        instruction: `Nhớ ${tens} sang cột Chục, cột Đơn vị còn ${ones}`,
+        demoValue: result,
+        column: 7
+      });
+    } else {
+      steps.push({
+        emoji: '2️⃣',
+        title: `Cộng thêm ${num2}`,
+        instruction: `Điều chỉnh các hạt để được ${result}`,
+        demoValue: result,
+        column: 8
+      });
+    }
+  } else {
+    // Phép trừ
+    if (num2 <= (num1 % 5)) {
+      steps.push({
+        emoji: '2️⃣',
+        title: `Trừ đi ${num2}`,
+        instruction: `Gạt ${num2} hạt đất xuống (kéo xuống dưới)`,
+        demoValue: result,
+        column: 8
+      });
+    } else if (num1 >= 5 && num2 <= 4) {
+      steps.push({
+        emoji: '2️⃣',
+        title: `Trừ ${num2} (dùng hạt trời)`,
+        instruction: `Gạt hạt trời lên (bớt 5), thêm ${5 - num2} hạt đất`,
+        demoValue: result,
+        column: 8
+      });
+    } else {
+      steps.push({
+        emoji: '2️⃣',
+        title: `Trừ đi ${num2}`,
+        instruction: `Điều chỉnh các hạt để được ${result}`,
+        demoValue: result,
+        column: 8
+      });
+    }
+  }
+
+  // Bước 3: Kết quả
+  steps.push({
+    emoji: '✅',
+    title: `Hoàn thành!`,
+    instruction: `Bàn tính hiện số ${result}. Đó là kết quả của ${problem}!`,
+    demoValue: result,
+    column: 8
+  });
+
+  return steps;
 }
 
 // Component: Khám phá tự do - có kiểm tra kết quả
