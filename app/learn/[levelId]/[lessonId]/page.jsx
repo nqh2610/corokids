@@ -1407,11 +1407,11 @@ function CalcPractice({ problem, answer, hint, onAnswer, showResult, isCorrect, 
 
             {/* Hướng dẫn */}
             <div className={`rounded-lg p-2 mb-2 ${stepCompleted ? 'bg-green-400/30' : 'bg-white/10'}`}>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{currentStep?.emoji}</span>
-                <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-2">
+                <span className="text-2xl flex-shrink-0">{currentStep?.emoji}</span>
+                <div className="flex-1">
                   <div className="font-bold text-sm">{currentStep?.title}</div>
-                  <div className="text-xs text-white/80 truncate">{currentStep?.instruction}</div>
+                  <div className="text-xs text-white/90 whitespace-pre-line leading-relaxed mt-1">{currentStep?.instruction}</div>
                 </div>
               </div>
               {stepCompleted && (
@@ -1491,80 +1491,104 @@ function parseSimpleProblem(problem, answer) {
   const result = operator === '+' ? num1 + num2 : num1 - num2;
 
   // Bước 1: Đặt số đầu tiên
+  let step1Instruction = '';
+  if (num1 === 0) {
+    step1Instruction = 'Bàn tính trống (số 0)';
+  } else if (num1 < 5) {
+    step1Instruction = `👆 Gạt ${num1} hạt đất LÊN`;
+  } else if (num1 === 5) {
+    step1Instruction = `👇 Gạt hạt trời XUỐNG (= 5)`;
+  } else {
+    step1Instruction = `👇 Gạt hạt trời XUỐNG (= 5)\n👆 Gạt ${num1 - 5} hạt đất LÊN (= ${num1 - 5})`;
+  }
+  
   steps.push({
     emoji: '1️⃣',
     title: `Đặt số ${num1}`,
-    instruction: num1 < 5 
-      ? `Gạt ${num1} hạt đất lên (hạt vàng bên dưới) ở cột Đơn vị`
-      : `Gạt hạt trời xuống (hạt đỏ = 5), rồi gạt ${num1 - 5} hạt đất lên`,
+    instruction: step1Instruction,
     demoValue: num1,
     column: 8
   });
 
   // Bước 2: Thực hiện phép tính
   if (operator === '+') {
+    let step2Instruction = '';
+    let step2Title = `Cộng thêm ${num2}`;
+    
     if (num1 + num2 <= 4) {
-      steps.push({
-        emoji: '2️⃣',
-        title: `Cộng thêm ${num2}`,
-        instruction: `Gạt thêm ${num2} hạt đất lên nữa`,
-        demoValue: result,
-        column: 8
-      });
+      // Đơn giản: chỉ gạt hạt đất lên
+      step2Instruction = `👆 Gạt thêm ${num2} hạt đất LÊN\n\n${num1} + ${num2} = ${result}`;
     } else if (num1 < 5 && result >= 5 && result <= 9) {
-      steps.push({
-        emoji: '2️⃣',
-        title: `Cộng ${num2} (dùng hạt trời)`,
-        instruction: `Gạt hạt trời (đỏ) xuống = 5, điều chỉnh hạt đất còn ${result - 5}`,
-        demoValue: result,
-        column: 8
-      });
+      // Cần dùng hạt trời
+      const earthAfter = result - 5;
+      const earthBefore = num1;
+      step2Title = `Cộng ${num2} (dùng hạt trời)`;
+      
+      if (earthBefore > earthAfter) {
+        const earthDown = earthBefore - earthAfter;
+        step2Instruction = `👇 Gạt hạt trời XUỐNG (+5)\n👇 Gạt ${earthDown} hạt đất XUỐNG (-${earthDown})\n\n${num1} + ${num2} = 5 + ${earthAfter} = ${result}`;
+      } else if (earthAfter > earthBefore) {
+        const earthUp = earthAfter - earthBefore;
+        step2Instruction = `👇 Gạt hạt trời XUỐNG (+5)\n👆 Gạt thêm ${earthUp} hạt đất LÊN (+${earthUp})\n\n${num1} + ${num2} = 5 + ${earthAfter} = ${result}`;
+      } else {
+        step2Instruction = `👇 Gạt hạt trời XUỐNG (+5)\n\n${num1} + ${num2} = ${result}`;
+      }
+    } else if (num1 >= 5 && result <= 9) {
+      // Đã có hạt trời, chỉ thêm hạt đất
+      step2Instruction = `👆 Gạt thêm ${num2} hạt đất LÊN\n\n${num1} + ${num2} = ${result}`;
     } else if (result >= 10) {
       const tens = Math.floor(result / 10);
       const ones = result % 10;
-      steps.push({
-        emoji: '2️⃣',
-        title: `Cộng ${num2} (nhớ sang chục)`,
-        instruction: `Nhớ ${tens} sang cột Chục, cột Đơn vị còn ${ones}`,
-        demoValue: result,
-        column: 7
-      });
+      step2Title = `Cộng ${num2} (có nhớ)`;
+      step2Instruction = `⚠️ ${num1} + ${num2} = ${result} (quá 9!)\n\n➡️ Nhớ ${tens} sang cột Chục\n📍 Giữ lại ${ones} ở cột Đơn vị`;
     } else {
-      steps.push({
-        emoji: '2️⃣',
-        title: `Cộng thêm ${num2}`,
-        instruction: `Điều chỉnh các hạt để được ${result}`,
-        demoValue: result,
-        column: 8
-      });
+      step2Instruction = `Điều chỉnh các hạt để được ${result}\n\n${num1} + ${num2} = ${result}`;
     }
+    
+    steps.push({
+      emoji: '2️⃣',
+      title: step2Title,
+      instruction: step2Instruction,
+      demoValue: result,
+      column: result >= 10 ? 7 : 8
+    });
   } else {
     // Phép trừ
-    if (num2 <= (num1 % 5)) {
-      steps.push({
-        emoji: '2️⃣',
-        title: `Trừ đi ${num2}`,
-        instruction: `Gạt ${num2} hạt đất xuống (kéo xuống dưới)`,
-        demoValue: result,
-        column: 8
-      });
-    } else if (num1 >= 5 && num2 <= 4) {
-      steps.push({
-        emoji: '2️⃣',
-        title: `Trừ ${num2} (dùng hạt trời)`,
-        instruction: `Gạt hạt trời lên (bớt 5), thêm ${5 - num2} hạt đất`,
-        demoValue: result,
-        column: 8
-      });
+    let step2Instruction = '';
+    let step2Title = `Trừ đi ${num2}`;
+    
+    if (num1 < 5 && num2 <= num1) {
+      // Đơn giản: chỉ gạt hạt đất xuống
+      step2Instruction = `👇 Gạt ${num2} hạt đất XUỐNG\n\n${num1} - ${num2} = ${result}`;
+    } else if (num1 >= 5 && result >= 5) {
+      // Vẫn còn hạt trời, chỉ gạt hạt đất
+      step2Instruction = `👇 Gạt ${num2} hạt đất XUỐNG\n\n${num1} - ${num2} = ${result}`;
+    } else if (num1 >= 5 && result < 5) {
+      // Cần gạt hạt trời lên
+      step2Title = `Trừ ${num2} (dùng hạt trời)`;
+      const earthBefore = num1 - 5;
+      const earthAfter = result;
+      
+      if (earthAfter > earthBefore) {
+        const earthUp = earthAfter - earthBefore;
+        step2Instruction = `👆 Gạt hạt trời LÊN (-5)\n👆 Gạt ${earthUp} hạt đất LÊN (+${earthUp})\n\n${num1} - ${num2} = ${result}`;
+      } else if (earthBefore > earthAfter) {
+        const earthDown = earthBefore - earthAfter;
+        step2Instruction = `👆 Gạt hạt trời LÊN (-5)\n👇 Gạt ${earthDown} hạt đất XUỐNG (-${earthDown})\n\n${num1} - ${num2} = ${result}`;
+      } else {
+        step2Instruction = `👆 Gạt hạt trời LÊN (-5)\n\n${num1} - ${num2} = ${result}`;
+      }
     } else {
-      steps.push({
-        emoji: '2️⃣',
-        title: `Trừ đi ${num2}`,
-        instruction: `Điều chỉnh các hạt để được ${result}`,
-        demoValue: result,
-        column: 8
-      });
+      step2Instruction = `Điều chỉnh các hạt để được ${result}\n\n${num1} - ${num2} = ${result}`;
     }
+    
+    steps.push({
+      emoji: '2️⃣',
+      title: step2Title,
+      instruction: step2Instruction,
+      demoValue: result,
+      column: 8
+    });
   }
 
   // Bước 3: Kết quả
