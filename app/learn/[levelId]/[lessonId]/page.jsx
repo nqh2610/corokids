@@ -1221,9 +1221,9 @@ function MiniSorobanDemo({ value = 0, highlightColumn = null, showArrow = false,
   return (
     <div className="bg-gradient-to-b from-amber-700 to-amber-800 rounded-lg p-2 shadow-lg relative overflow-hidden">
       {/* Thanh ngang liền mạch - nằm dưới hạt */}
-      <div className="absolute left-2 right-2 top-[38px] h-1.5 bg-gradient-to-b from-amber-500 via-amber-400 to-amber-600 rounded-sm z-0 shadow-inner" />
+      <div className="absolute left-2 right-2 top-[42px] h-2 bg-gradient-to-b from-amber-500 via-amber-400 to-amber-600 rounded-sm z-0 shadow-inner" />
       
-      <div className="flex justify-center gap-1 relative z-10">
+      <div className="flex justify-center gap-2 relative z-10">
         {columns.map((col, colIdx) => {
           const state = getBeadState(col.digit);
           const isHighlighted = highlightColumn === col.index;
@@ -1231,29 +1231,35 @@ function MiniSorobanDemo({ value = 0, highlightColumn = null, showArrow = false,
           return (
             <div 
               key={colIdx} 
-              className={`flex flex-col items-center px-1 rounded transition-all ${
-                isHighlighted ? 'bg-yellow-400/30 ring-2 ring-yellow-400' : ''
+              className={`flex flex-col items-center px-1.5 py-1 rounded-lg transition-all ${
+                isHighlighted ? 'bg-yellow-400/40 ring-2 ring-yellow-400 shadow-lg' : ''
               }`}
             >
-              {/* Thanh dọc (trục) */}
-              <div className="absolute top-1 bottom-6 w-0.5 bg-gradient-to-b from-amber-400 to-amber-500 rounded-full z-0" 
-                   style={{ left: `calc(${colIdx * 33.33}% + 50% - 1px)` }} />
+              {/* Thanh dọc (trục) - đậm hơn */}
+              <div className="absolute top-2 bottom-8 w-1 bg-gradient-to-b from-amber-400 via-amber-300 to-amber-500 rounded-full z-0 shadow-sm" 
+                   style={{ left: `calc(${colIdx * 33.33}% + 50% - 2px)` }} />
               
               {/* Heaven bead - Hạt trời */}
-              <div className="h-8 flex flex-col justify-start relative z-20">
-                <div className={`w-5 h-5 rounded-full transition-all duration-300 relative ${
+              <div className="h-10 flex flex-col justify-start relative z-20">
+                <div className={`w-6 h-6 rounded-full transition-all duration-300 relative border-2 ${
                   state.heaven 
-                    ? 'bg-gradient-to-br from-red-400 to-red-600 translate-y-3 ring-2 ring-white/60 shadow-md' 
-                    : 'bg-gradient-to-br from-red-300 to-red-400 translate-y-0'
+                    ? 'bg-gradient-to-br from-red-500 to-red-700 translate-y-4 border-red-300 shadow-lg scale-110' 
+                    : 'bg-gradient-to-br from-red-200 to-red-300 translate-y-0 border-red-400/50 opacity-60'
                 }`}>
                   {/* Điểm sáng phản chiếu */}
-                  <div className={`absolute top-0.5 left-1 w-1.5 h-1.5 rounded-full bg-white/50`} />
+                  <div className="absolute top-0.5 left-1 w-2 h-2 rounded-full bg-white/50" />
                   {/* Lỗ giữa hạt */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-amber-800/60" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-amber-900/50" />
+                  {/* Indicator cho hạt đã gạt */}
+                  {state.heaven && (
+                    <div className="absolute -right-1 -top-1 w-3 h-3 bg-green-400 rounded-full border border-green-600 flex items-center justify-center">
+                      <span className="text-[6px] text-green-900">✓</span>
+                    </div>
+                  )}
                 </div>
                 {isHighlighted && showArrow && (
-                  <div className={`absolute -right-3 text-yellow-400 text-xs font-bold animate-bounce ${
-                    state.heaven ? 'top-6' : 'top-1'
+                  <div className={`absolute -right-4 text-yellow-400 text-sm font-bold animate-bounce ${
+                    state.heaven ? 'top-7' : 'top-1'
                   }`}>
                     {state.heaven ? '👇' : '👆'}
                   </div>
@@ -1267,26 +1273,32 @@ function MiniSorobanDemo({ value = 0, highlightColumn = null, showArrow = false,
                   return (
                     <div 
                       key={i}
-                      className={`w-5 h-5 rounded-full transition-all duration-300 relative ${
+                      className={`w-6 h-6 rounded-full transition-all duration-300 relative border-2 ${
                         isUp 
-                          ? 'bg-gradient-to-br from-yellow-300 to-amber-500 -translate-y-1 ring-2 ring-white/60 shadow-md' 
-                          : 'bg-gradient-to-br from-amber-400 to-amber-500 translate-y-0'
+                          ? 'bg-gradient-to-br from-yellow-400 to-amber-600 -translate-y-1.5 border-yellow-300 shadow-lg scale-110' 
+                          : 'bg-gradient-to-br from-amber-300 to-amber-400 translate-y-0 border-amber-500/50 opacity-60'
                       }`}
                     >
                       {/* Điểm sáng phản chiếu */}
-                      <div className={`absolute top-0.5 left-1 w-1.5 h-1.5 rounded-full bg-white/40`} />
+                      <div className="absolute top-0.5 left-1 w-2 h-2 rounded-full bg-white/40" />
                       {/* Lỗ giữa hạt */}
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-amber-700/50" />
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-amber-800/40" />
+                      {/* Indicator cho hạt đã gạt */}
+                      {isUp && (
+                        <div className="absolute -right-1 -top-1 w-3 h-3 bg-green-400 rounded-full border border-green-600 flex items-center justify-center">
+                          <span className="text-[6px] text-green-900">✓</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
               
               {/* Label cột */}
-              <div className={`text-[8px] mt-1 font-bold ${isHighlighted ? 'text-yellow-300' : 'text-amber-200'}`}>
+              <div className={`text-[9px] mt-1.5 font-bold ${isHighlighted ? 'text-yellow-300' : 'text-amber-200'}`}>
                 {col.label}
               </div>
-              <div className={`text-sm font-black ${isHighlighted ? 'text-yellow-300' : 'text-white'}`}>
+              <div className={`text-base font-black ${isHighlighted ? 'text-yellow-300' : 'text-white'}`}>
                 {col.digit}
               </div>
             </div>
@@ -1405,7 +1417,7 @@ function CalcPractice({ problem, answer, hint, onAnswer, showResult, isCorrect, 
           )}
         </div>
 
-        {/* Panel Hướng Dẫn - Gọn gàng hơn */}
+        {/* Panel Hướng Dẫn - Cố định chiều cao để không giật */}
         {showGuide && !submitted && guideSteps.length > 0 && (
           <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-3 text-white shadow-lg">
             {/* Header + Progress */}
@@ -1415,21 +1427,21 @@ function CalcPractice({ problem, answer, hint, onAnswer, showResult, isCorrect, 
                 {guideSteps.map((_, idx) => (
                   <div 
                     key={idx}
-                    className={`w-2 h-2 rounded-full ${
-                      idx < currentGuideStep ? 'bg-green-400' : idx === currentGuideStep ? 'bg-yellow-400' : 'bg-white/30'
+                    className={`w-2.5 h-2.5 rounded-full transition-all ${
+                      idx < currentGuideStep ? 'bg-green-400 scale-110' : idx === currentGuideStep ? 'bg-yellow-400 animate-pulse' : 'bg-white/30'
                     }`}
                   />
                 ))}
               </div>
             </div>
 
-            {/* Hướng dẫn */}
-            <div className={`rounded-lg p-2 mb-2 ${stepCompleted ? 'bg-green-400/30' : 'bg-white/10'}`}>
+            {/* Hướng dẫn - Cố định chiều cao */}
+            <div className={`rounded-lg p-2 mb-2 min-h-[80px] transition-colors ${stepCompleted ? 'bg-green-400/30' : 'bg-white/10'}`}>
               <div className="flex items-start gap-2">
                 <span className="text-2xl flex-shrink-0">{currentStep?.emoji}</span>
-                <div className="flex-1">
-                  <div className="font-bold text-sm">{currentStep?.title}</div>
-                  <div className="text-xs text-white/90 whitespace-pre-line leading-relaxed mt-1">{currentStep?.instruction}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm truncate">{currentStep?.title}</div>
+                  <div className="text-xs text-white/90 whitespace-pre-line leading-relaxed mt-1 max-h-[48px] overflow-y-auto scrollbar-thin">{currentStep?.instruction}</div>
                 </div>
               </div>
               {stepCompleted && (
@@ -1439,14 +1451,16 @@ function CalcPractice({ problem, answer, hint, onAnswer, showResult, isCorrect, 
               )}
             </div>
 
-            {/* Mini Soroban + Mục tiêu */}
-            <div className="flex items-center gap-3">
-              <MiniSorobanDemo value={currentStep?.demoValue || 0} highlightColumn={currentStep?.column} />
-              <div className="flex-1 text-center">
+            {/* Mini Soroban + Mục tiêu - Layout cải thiện */}
+            <div className="flex items-center gap-2">
+              <div className="flex-shrink-0">
+                <MiniSorobanDemo value={currentStep?.demoValue || 0} highlightColumn={currentStep?.column} />
+              </div>
+              <div className="flex-1 text-center bg-white/10 rounded-lg py-2 px-1">
                 <div className="text-xs text-white/60">🎯 Mục tiêu</div>
-                <div className="text-2xl font-black text-yellow-300">{currentStep?.demoValue}</div>
-                <div className={`text-xs mt-1 ${isStepMatch ? 'text-green-300' : 'text-white/60'}`}>
-                  Em đang: <span className="font-bold">{currentValue}</span>
+                <div className="text-3xl font-black text-yellow-300">{currentStep?.demoValue}</div>
+                <div className={`text-sm mt-1 font-medium ${isStepMatch ? 'text-green-300' : 'text-white/80'}`}>
+                  Em: <span className="font-bold text-lg">{currentValue}</span>
                   {isStepMatch && ' ✓'}
                 </div>
               </div>
