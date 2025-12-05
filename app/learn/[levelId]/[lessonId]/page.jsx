@@ -1232,34 +1232,44 @@ function MiniSorobanDemo({ value = 0, highlightColumn = null, showArrow = false,
                 isHighlighted ? 'bg-yellow-400/30 ring-2 ring-yellow-400' : ''
               }`}
             >
-              {/* Heaven bead */}
-              <div className="h-6 flex flex-col justify-end relative">
-                <div className={`w-4 h-4 rounded-full transition-all duration-300 ${
+              {/* Heaven bead - Hạt trời */}
+              <div className="h-7 flex flex-col justify-end relative">
+                <div className={`w-5 h-5 rounded-full transition-all duration-300 ${
                   state.heaven 
-                    ? 'bg-gradient-to-br from-red-400 to-red-600 translate-y-1' 
-                    : 'bg-gradient-to-br from-red-300 to-red-400 -translate-y-1'
-                }`} />
+                    ? 'bg-gradient-to-br from-red-500 to-red-700 translate-y-1.5 ring-2 ring-white/70 shadow-lg shadow-red-500/50' 
+                    : 'bg-gradient-to-br from-red-200 to-red-300 -translate-y-0.5 opacity-50'
+                }`}>
+                  {/* Điểm sáng phản chiếu */}
+                  <div className={`absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full ${
+                    state.heaven ? 'bg-white/60' : 'bg-white/30'
+                  }`} />
+                </div>
                 {isHighlighted && showArrow && state.heaven && (
                   <div className="absolute -right-3 top-1/2 text-yellow-500 animate-bounce text-xs">👇</div>
                 )}
               </div>
               
-              {/* Divider */}
-              <div className="w-full h-0.5 bg-amber-900 my-0.5" />
+              {/* Divider - Thanh ngang */}
+              <div className="w-full h-1 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 my-0.5 rounded" />
               
-              {/* Earth beads */}
+              {/* Earth beads - Hạt đất */}
               <div className="flex flex-col gap-0.5">
                 {[0, 1, 2, 3].map((i) => {
                   const isUp = i < state.earth;
                   return (
                     <div 
                       key={i}
-                      className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                      className={`w-5 h-5 rounded-full transition-all duration-300 relative ${
                         isUp 
-                          ? 'bg-gradient-to-br from-yellow-300 to-amber-500 -translate-y-0.5' 
-                          : 'bg-gradient-to-br from-amber-400 to-amber-600 translate-y-0.5'
+                          ? 'bg-gradient-to-br from-yellow-400 to-amber-600 -translate-y-1 ring-2 ring-white/70 shadow-lg shadow-yellow-500/50' 
+                          : 'bg-gradient-to-br from-amber-300 to-amber-400 translate-y-0.5 opacity-40'
                       }`}
-                    />
+                    >
+                      {/* Điểm sáng phản chiếu */}
+                      <div className={`absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full ${
+                        isUp ? 'bg-white/60' : 'bg-white/20'
+                      }`} />
+                    </div>
                   );
                 })}
               </div>
@@ -1268,7 +1278,7 @@ function MiniSorobanDemo({ value = 0, highlightColumn = null, showArrow = false,
               <div className={`text-[8px] mt-1 font-bold ${isHighlighted ? 'text-yellow-300' : 'text-amber-200'}`}>
                 {col.label}
               </div>
-              <div className={`text-xs font-bold ${isHighlighted ? 'text-yellow-300' : 'text-white'}`}>
+              <div className={`text-sm font-black ${isHighlighted ? 'text-yellow-300' : 'text-white'}`}>
                 {col.digit}
               </div>
             </div>
