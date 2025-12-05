@@ -1470,7 +1470,126 @@ function CalcPractice({ problem, answer, hint, onAnswer, showResult, isCorrect, 
   );
 }
 
-// Hàm phân tích phép tính thành các bước với hướng dẫn chi tiết
+// Helper: Hướng dẫn đặt 1 chữ số trên cột
+function getDigitInstruction(digit, columnName) {
+  if (digit === 0) return null;
+  if (digit <= 4) {
+    return `👆 Cột ${columnName}: Gạt ${digit} hạt đất LÊN`;
+  } else if (digit === 5) {
+    return `👇 Cột ${columnName}: Gạt hạt trời XUỐNG`;
+  } else {
+    return `👇 Cột ${columnName}: Gạt hạt trời XUỐNG + ${digit - 5} hạt đất LÊN`;
+  }
+}
+
+// Helper: Hướng dẫn cộng/trừ theo phương pháp Soroban
+function getSorobanOperation(currentDigit, operand, operator, columnName) {
+  // currentDigit: chữ số hiện tại trên cột (0-9)
+  // operand: số cần cộng/trừ (1-9)
+  // operator: '+' hoặc '-'
+  // columnName: tên cột (Đơn vị, Chục, Trăm...)
+  
+  const result = operator === '+' ? currentDigit + operand : currentDigit - operand;
+  const currentHeaven = currentDigit >= 5; // Có hạt trời không
+  const currentEarth = currentDigit >= 5 ? currentDigit - 5 : currentDigit; // Số hạt đất
+  
+  let instructions = [];
+  let needCarry = false; // Cần nhớ sang cột trái
+  let needBorrow = false; // Cần mượn từ cột trái
+  
+  if (operator === '+') {
+    // === PHÉP CỘNG ===
+    if (result <= 9) {
+      // Không cần nhớ
+      const resultHeaven = result >= 5;
+      const resultEarth = result >= 5 ? result - 5 : result;
+      
+      if (!currentHeaven && !resultHeaven) {
+        // Case: 0-4 + x = 0-4 (chỉ thêm hạt đất)
+        instructions.push(`👆 Cột ${columnName}: Gạt thêm ${operand} hạt đất LÊN`);
+      } else if (!currentHeaven && resultHeaven) {
+        // Case: 0-4 + x = 5-9 (cần hạ hạt trời)
+        // Công thức: +n = +5 - (5-n)
+        const complement5 = 5 - operand;
+        if (complement5 > 0 && currentEarth >= complement5) {
+          instructions.push(`👇 Cột ${columnName}: Gạt hạt trời XUỐNG (+5)`);
+          instructions.push(`👇 Cột ${columnName}: Gạt ${complement5} hạt đất XUỐNG (-${complement5})`);
+        } else if (complement5 <= 0) {
+          instructions.push(`👇 Cột ${columnName}: Gạt hạt trời XUỐNG (+5)`);
+          if (resultEarth > currentEarth) {
+            instructions.push(`👆 Cột ${columnName}: Gạt thêm ${resultEarth - currentEarth} hạt đất LÊN`);
+          }
+        } else {
+          instructions.push(`👆 Cột ${columnName}: Gạt thêm ${operand} hạt đất LÊN`);
+        }
+      } else if (currentHeaven && resultHeaven) {
+        // Case: 5-9 + x = 5-9 (chỉ thêm hạt đất)
+        if (resultEarth > currentEarth) {
+          instructions.push(`👆 Cột ${columnName}: Gạt thêm ${resultEarth - currentEarth} hạt đất LÊN`);
+        }
+      }
+    } else {
+      // result >= 10: Cần nhớ
+      needCarry = true;
+      const onesDigit = result - 10;
+      const resultHeaven = onesDigit >= 5;
+      const resultEarth = onesDigit >= 5 ? onesDigit - 5 : onesDigit;
+      
+      // Công thức: +n = +10 - (10-n)
+      const complement10 = 10 - operand;
+      instructions.push(`📍 Cột ${columnName}: Trừ bớt ${complement10} (-${complement10})`);
+      instructions.push(`➡️ Cột bên trái: Thêm 1 (+10)`);
+    }
+  } else {
+    // === PHÉP TRỪ ===
+    if (result >= 0) {
+      // Không cần mượn
+      const resultHeaven = result >= 5;
+      const resultEarth = result >= 5 ? result - 5 : result;
+      
+      if (currentHeaven && resultHeaven) {
+        // Case: 5-9 - x = 5-9 (chỉ gạt hạt đất xuống)
+        if (currentEarth > resultEarth) {
+          instructions.push(`👇 Cột ${columnName}: Gạt ${currentEarth - resultEarth} hạt đất XUỐNG`);
+        }
+      } else if (currentHeaven && !resultHeaven) {
+        // Case: 5-9 - x = 0-4 (cần đưa hạt trời lên)
+        // Công thức: -n = -5 + (5-n)
+        const complement5 = 5 - operand;
+        if (complement5 >= 0) {
+          instructions.push(`👆 Cột ${columnName}: Gạt hạt trời LÊN (-5)`);
+          if (complement5 > 0) {
+            instructions.push(`👆 Cột ${columnName}: Gạt ${complement5} hạt đất LÊN (+${complement5})`);
+          }
+        } else {
+          // complement5 < 0, tức operand > 5
+          instructions.push(`👆 Cột ${columnName}: Gạt hạt trời LÊN (-5)`);
+          const extraDown = operand - 5;
+          if (currentEarth >= extraDown) {
+            instructions.push(`👇 Cột ${columnName}: Gạt ${extraDown} hạt đất XUỐNG (-${extraDown})`);
+          }
+        }
+      } else if (!currentHeaven && !resultHeaven) {
+        // Case: 0-4 - x = 0-4 (chỉ gạt hạt đất xuống)
+        if (currentEarth >= operand) {
+          instructions.push(`👇 Cột ${columnName}: Gạt ${operand} hạt đất XUỐNG`);
+        }
+      }
+    } else {
+      // result < 0: Cần mượn từ cột trái
+      needBorrow = true;
+      const actualResult = result + 10; // 0-9
+      const complement10 = 10 - operand; // Số cần thêm vào cột này
+      
+      instructions.push(`➡️ Cột bên trái: Bớt 1 (mượn 10)`);
+      instructions.push(`👆 Cột ${columnName}: Thêm ${complement10} (+${complement10})`);
+    }
+  }
+  
+  return { instructions, needCarry, needBorrow, result };
+}
+
+// Hàm phân tích phép tính thành các bước với hướng dẫn chi tiết theo phương pháp Soroban
 function parseSimpleProblem(problem, answer) {
   const steps = [];
   
@@ -1490,114 +1609,94 @@ function parseSimpleProblem(problem, answer) {
   const num2 = parseInt(match[3]);
   const result = operator === '+' ? num1 + num2 : num1 - num2;
 
-  // Bước 1: Đặt số đầu tiên
-  let step1Instruction = '';
+  // Phân tích chữ số
+  const tens1 = Math.floor(num1 / 10);
+  const ones1 = num1 % 10;
+  const tens2 = Math.floor(num2 / 10);
+  const ones2 = num2 % 10;
+  const tensResult = Math.floor(result / 10);
+  const onesResult = result % 10;
+
+  // ========== BƯỚC 1: ĐẶT SỐ ĐẦU TIÊN ==========
+  let step1Instructions = [];
+  
   if (num1 === 0) {
-    step1Instruction = 'Bàn tính trống (số 0)';
-  } else if (num1 < 5) {
-    step1Instruction = `👆 Gạt ${num1} hạt đất LÊN`;
-  } else if (num1 === 5) {
-    step1Instruction = `👇 Gạt hạt trời XUỐNG (= 5)`;
+    step1Instructions.push('Bàn tính trống (số 0)');
+  } else if (num1 < 10) {
+    // Số có 1 chữ số
+    const inst = getDigitInstruction(ones1, 'Đơn vị');
+    if (inst) step1Instructions.push(inst);
   } else {
-    step1Instruction = `👇 Gạt hạt trời XUỐNG (= 5)\n👆 Gạt ${num1 - 5} hạt đất LÊN (= ${num1 - 5})`;
+    // Số có 2 chữ số trở lên
+    const instTens = getDigitInstruction(tens1, 'Chục');
+    const instOnes = getDigitInstruction(ones1, 'Đơn vị');
+    if (instTens) step1Instructions.push(instTens);
+    if (instOnes) step1Instructions.push(instOnes);
   }
   
   steps.push({
     emoji: '1️⃣',
     title: `Đặt số ${num1}`,
-    instruction: step1Instruction,
+    instruction: step1Instructions.join('\n'),
     demoValue: num1,
-    column: 8
+    column: num1 >= 10 ? 7 : 8
   });
 
-  // Bước 2: Thực hiện phép tính
-  if (operator === '+') {
-    let step2Instruction = '';
-    let step2Title = `Cộng thêm ${num2}`;
+  // ========== BƯỚC 2: THỰC HIỆN PHÉP TÍNH ==========
+  let step2Instructions = [];
+  let step2Title = operator === '+' ? `Cộng thêm ${num2}` : `Trừ đi ${num2}`;
+  
+  if (num2 < 10) {
+    // Số hạng/số trừ có 1 chữ số - tính trên cột Đơn vị
+    const opResult = getSorobanOperation(ones1, num2, operator, 'Đơn vị');
+    step2Instructions = opResult.instructions;
     
-    if (num1 + num2 <= 4) {
-      // Đơn giản: chỉ gạt hạt đất lên
-      step2Instruction = `👆 Gạt thêm ${num2} hạt đất LÊN\n\n${num1} + ${num2} = ${result}`;
-    } else if (num1 < 5 && result >= 5 && result <= 9) {
-      // Cần dùng hạt trời
-      const earthAfter = result - 5;
-      const earthBefore = num1;
+    if (opResult.needCarry) {
+      step2Title = `Cộng ${num2} (có nhớ sang Chục)`;
+    } else if (opResult.needBorrow) {
+      step2Title = `Trừ ${num2} (mượn từ Chục)`;
+    } else if (operator === '+' && ones1 < 5 && ones1 + num2 >= 5 && ones1 + num2 <= 9) {
       step2Title = `Cộng ${num2} (dùng hạt trời)`;
-      
-      if (earthBefore > earthAfter) {
-        const earthDown = earthBefore - earthAfter;
-        step2Instruction = `👇 Gạt hạt trời XUỐNG (+5)\n👇 Gạt ${earthDown} hạt đất XUỐNG (-${earthDown})\n\n${num1} + ${num2} = 5 + ${earthAfter} = ${result}`;
-      } else if (earthAfter > earthBefore) {
-        const earthUp = earthAfter - earthBefore;
-        step2Instruction = `👇 Gạt hạt trời XUỐNG (+5)\n👆 Gạt thêm ${earthUp} hạt đất LÊN (+${earthUp})\n\n${num1} + ${num2} = 5 + ${earthAfter} = ${result}`;
-      } else {
-        step2Instruction = `👇 Gạt hạt trời XUỐNG (+5)\n\n${num1} + ${num2} = ${result}`;
-      }
-    } else if (num1 >= 5 && result <= 9) {
-      // Đã có hạt trời, chỉ thêm hạt đất
-      step2Instruction = `👆 Gạt thêm ${num2} hạt đất LÊN\n\n${num1} + ${num2} = ${result}`;
-    } else if (result >= 10) {
-      const tens = Math.floor(result / 10);
-      const ones = result % 10;
-      step2Title = `Cộng ${num2} (có nhớ)`;
-      step2Instruction = `⚠️ ${num1} + ${num2} = ${result} (quá 9!)\n\n➡️ Nhớ ${tens} sang cột Chục\n📍 Giữ lại ${ones} ở cột Đơn vị`;
-    } else {
-      step2Instruction = `Điều chỉnh các hạt để được ${result}\n\n${num1} + ${num2} = ${result}`;
-    }
-    
-    steps.push({
-      emoji: '2️⃣',
-      title: step2Title,
-      instruction: step2Instruction,
-      demoValue: result,
-      column: result >= 10 ? 7 : 8
-    });
-  } else {
-    // Phép trừ
-    let step2Instruction = '';
-    let step2Title = `Trừ đi ${num2}`;
-    
-    if (num1 < 5 && num2 <= num1) {
-      // Đơn giản: chỉ gạt hạt đất xuống
-      step2Instruction = `👇 Gạt ${num2} hạt đất XUỐNG\n\n${num1} - ${num2} = ${result}`;
-    } else if (num1 >= 5 && result >= 5) {
-      // Vẫn còn hạt trời, chỉ gạt hạt đất
-      step2Instruction = `👇 Gạt ${num2} hạt đất XUỐNG\n\n${num1} - ${num2} = ${result}`;
-    } else if (num1 >= 5 && result < 5) {
-      // Cần gạt hạt trời lên
+    } else if (operator === '-' && ones1 >= 5 && ones1 - num2 < 5 && ones1 - num2 >= 0) {
       step2Title = `Trừ ${num2} (dùng hạt trời)`;
-      const earthBefore = num1 - 5;
-      const earthAfter = result;
-      
-      if (earthAfter > earthBefore) {
-        const earthUp = earthAfter - earthBefore;
-        step2Instruction = `👆 Gạt hạt trời LÊN (-5)\n👆 Gạt ${earthUp} hạt đất LÊN (+${earthUp})\n\n${num1} - ${num2} = ${result}`;
-      } else if (earthBefore > earthAfter) {
-        const earthDown = earthBefore - earthAfter;
-        step2Instruction = `👆 Gạt hạt trời LÊN (-5)\n👇 Gạt ${earthDown} hạt đất XUỐNG (-${earthDown})\n\n${num1} - ${num2} = ${result}`;
-      } else {
-        step2Instruction = `👆 Gạt hạt trời LÊN (-5)\n\n${num1} - ${num2} = ${result}`;
-      }
-    } else {
-      step2Instruction = `Điều chỉnh các hạt để được ${result}\n\n${num1} - ${num2} = ${result}`;
+    }
+  } else {
+    // Số hạng/số trừ có 2 chữ số
+    // Xử lý cột Chục trước, rồi cột Đơn vị
+    step2Title = operator === '+' ? `Cộng ${num2}` : `Trừ ${num2}`;
+    
+    if (tens2 > 0) {
+      const tensOp = getSorobanOperation(tens1, tens2, operator, 'Chục');
+      step2Instructions.push(...tensOp.instructions);
     }
     
-    steps.push({
-      emoji: '2️⃣',
-      title: step2Title,
-      instruction: step2Instruction,
-      demoValue: result,
-      column: 8
-    });
+    if (ones2 > 0) {
+      // Chữ số đơn vị hiện tại sau khi đặt num1
+      const currentOnes = ones1;
+      const onesOp = getSorobanOperation(currentOnes, ones2, operator, 'Đơn vị');
+      step2Instructions.push(...onesOp.instructions);
+    }
   }
+  
+  // Thêm kết quả vào cuối
+  step2Instructions.push('');
+  step2Instructions.push(`${num1} ${operator} ${num2} = ${result}`);
+  
+  steps.push({
+    emoji: '2️⃣',
+    title: step2Title,
+    instruction: step2Instructions.join('\n'),
+    demoValue: result,
+    column: result >= 10 ? 7 : 8
+  });
 
-  // Bước 3: Kết quả
+  // ========== BƯỚC 3: KẾT QUẢ ==========
   steps.push({
     emoji: '✅',
     title: `Hoàn thành!`,
-    instruction: `Bàn tính hiện số ${result}. Đó là kết quả của ${problem}!`,
+    instruction: `Bàn tính hiện số ${result}.\nĐó là kết quả của ${problem}!`,
     demoValue: result,
-    column: 8
+    column: result >= 10 ? 7 : 8
   });
 
   return steps;
