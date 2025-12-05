@@ -1928,6 +1928,42 @@ function parseSimpleProblem(problem, answer) {
           demoValue: result,
           column: 7
         });
+      } else {
+        // TRƯỜNG HỢP CÒN LẠI: ones1 >= 5 && num2 < 5 && sumOnes >= 10
+        // Ví dụ: 9 + 1 = 10, 8 + 2 = 10, 7 + 3 = 10, 7 + 4 = 11, 8 + 3 = 11, etc.
+        // Công thức: +n = -(10-n) + 10
+        const complement10 = 10 - num2;
+        const afterSub = ones1 - complement10; // Kết quả cột đơn vị sau khi trừ bù
+        
+        // Bước 1: Trừ bù complement10 ở cột Đơn vị TRƯỚC
+        let subInst = '';
+        if (afterSub >= 5) {
+          // Vẫn có hạt trời sau khi trừ → chỉ gạt hạt đất xuống
+          subInst = `⬇️ Cột Đơn vị: Gạt ${complement10} hạt đất XUỐNG (-${complement10})`;
+        } else if (ones1 >= 5) {
+          // Mất hạt trời sau khi trừ → gạt hạt trời lên, có thể cần gạt hạt đất lên
+          subInst = `⬆️ Cột Đơn vị: Gạt hạt trời LÊN (-5)`;
+          if (afterSub > 0) {
+            subInst += `\n⬆️ Cột Đơn vị: Gạt ${afterSub} hạt đất LÊN (+${afterSub})`;
+          }
+        }
+        
+        steps.push({
+          emoji: getStepEmoji(stepNumber++),
+          title: `Trừ bù ${complement10} ở Đơn vị`,
+          instruction: subInst,
+          demoValue: num1 - complement10,
+          column: 8
+        });
+        
+        // Bước 2: Nhớ 1 vào cột Chục SAU
+        steps.push({
+          emoji: getStepEmoji(stepNumber++),
+          title: `Nhớ 1 sang Chục`,
+          instruction: `⬆️ Cột Chục: Gạt 1 hạt đất LÊN (+10)\n\n${num1} + ${num2} = ${result}`,
+          demoValue: result,
+          column: 7
+        });
       }
     } else if (num2 >= 10) {
       // Số cộng có 2 chữ số - xử lý riêng
@@ -2063,14 +2099,20 @@ function parseSimpleProblem(problem, answer) {
       
       // Nếu không có instruction cụ thể, dùng công thức đơn giản
       if (!addInst) {
-        addInst = `⬆️ Cột Đơn vị: Thêm bù ${complement10} (+${complement10})`;
+        addInst = `⬆️ Cột Đơn vị: Cộng bù ${complement10} (+${complement10})`;
       }
+      
+      // QUAN TRỌNG: demoValue sau bước cộng bù = giá trị bàn tính thực tế
+      // = (hàng chục * 10) + actualResult (kết quả cột đơn vị sau cộng bù)
+      // VÍ DỤ: 12 - 5: ones1=2, complement10=5, actualResult=7
+      // Sau cộng bù: bàn tính = 10 + 7 = 17 (chưa mượn từ chục)
+      const step1DemoValue = (tens1 * 10) + actualResult;
       
       steps.push({
         emoji: getStepEmoji(stepNumber++),
-        title: `Thêm bù ${complement10} ở Đơn vị`,
+        title: `Cộng bù ${complement10} ở Đơn vị`,
         instruction: addInst,
-        demoValue: ones1 + complement10, // Giá trị tạm sau khi thêm bù (chưa trừ ở cột chục)
+        demoValue: step1DemoValue, // Giá trị bàn tính sau khi cộng bù (chưa mượn từ cột chục)
         column: 8
       });
       
